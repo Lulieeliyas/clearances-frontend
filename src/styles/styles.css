@@ -1,0 +1,364 @@
+/* =========================
+   Variables & Root
+========================= */
+:root {
+  --bg: #f7f9fc;
+  --card: #ffffff;
+  --accent: #2563eb;
+  --muted: #6b7280;
+  --danger: #b91c1c;
+}
+
+/* =========================
+   Reset & Global Styles
+========================= */
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  font-family: "Poppins", system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background: var(--bg);
+  color: #111827;
+}
+
+/* =========================
+   App Container & Navbar
+========================= */
+.app-container {
+  max-width: 980px;
+  margin: 24px auto;
+  padding: 12px;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.brand {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+
+.nav-links {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #111827;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+.nav-links a:hover {
+  background: #eef2ff;
+}
+
+/* =========================
+   Buttons
+========================= */
+.btn {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  width: 100%;
+  transition: 0.3s;
+}
+
+.btn:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-ghost:hover {
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.06);
+}
+
+.btn-logout {
+  background-color: #ef4444;
+}
+
+.btn-logout:hover {
+  background-color: #dc2626;
+}
+
+.btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+/* =========================
+   Cards & Containers
+========================= */
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 6px 20px rgba(2, 6, 23, 0.06);
+  margin-bottom: 12px;
+}
+
+.page-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+.login-box,
+.dashboard,
+.form-box {
+  background: var(--card);
+  padding: 2rem 3rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 450px;
+}
+
+/* =========================
+   Typography
+========================= */
+.title {
+  margin: 6px 0;
+  color: var(--accent);
+  text-align: center;
+}
+
+.subtitle {
+  color: #444;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.lead {
+  color: var(--muted);
+  margin: 6px 0 16px 0;
+}
+
+.small {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.9rem;
+  margin-top: 6px;
+}
+
+/* =========================
+   Layout & Rows
+========================= */
+.footer-row,
+.row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.action-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* =========================
+   Forms
+========================= */
+.field {
+  margin-bottom: 1rem;
+}
+
+.input,
+select,
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--accent);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.form-grid label {
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+/* Roles Toggle */
+.role-toggle {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.role-btn {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+}
+
+.role-btn.active {
+  border-color: var(--accent);
+  box-shadow: 0 6px 12px rgba(37, 99, 235, 0.08);
+}
+
+/* =========================
+   Student List / Admin Dashboard
+========================= */
+.dashboard-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.sidebar {
+  flex: 1;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.student-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.student-card {
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fbfcff;
+}
+
+/* =========================
+   Main Content
+========================= */
+.main-content {
+  flex: 3;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  min-height: 500px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+/* =========================
+   Slider / Intro
+========================= */
+.slide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  text-align: center;
+}
+
+.slide-img {
+  width: 100%;
+  max-width: 760px;
+  border-radius: 10px;
+  max-height: 340px;
+  object-fit: cover;
+}
+
+.dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e5e7eb;
+}
+
+.dot.active {
+  background: var(--accent);
+}
+
+/* =========================
+   Marquee
+========================= */
+.marquee-wrap {
+  overflow: hidden;
+  direction: rtl;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #fff, #f8fafc);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.marquee {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  animation: marquee 18s linear infinite;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+/* =========================
+   Responsive
+========================= */
+@media (max-width: 800px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+  .dashboard-container { flex-direction: column; }
+}
+

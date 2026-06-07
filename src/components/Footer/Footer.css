@@ -1,0 +1,206 @@
+/* Compact Footer CSS */
+.footer {
+  background: linear-gradient(135deg, #0f172a, #020617);
+  padding: 16px 0 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.footer-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Footer Blocks */
+.footer-block {
+  flex: 0 1 auto;
+  min-width: 140px;
+}
+
+/* Brand Mini */
+.brand-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.brand-mini-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 2px 0;
+  line-height: 1.2;
+}
+
+.brand-mini-sub {
+  font-size: 10px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Block Titles */
+.block-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #60a5fa;
+  margin: 0 0 8px 0;
+}
+
+/* Mini Links */
+.mini-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mini-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 11px;
+  padding: 2px 0;
+  transition: color 0.2s;
+}
+
+.mini-link:hover {
+  color: #60a5fa;
+}
+
+.mini-link svg {
+  width: 12px;
+  height: 12px;
+  color: #60a5fa;
+  opacity: 0.8;
+}
+
+/* Mini Contact */
+.mini-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mini-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+
+.mini-contact-item a {
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.mini-contact-item a:hover {
+  color: #60a5fa;
+}
+
+.mini-contact-item svg {
+  width: 12px;
+  height: 12px;
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+
+.address {
+  align-items: flex-start;
+}
+
+.address span {
+  line-height: 1.3;
+}
+
+/* Copyright Block */
+.copyright-block {
+  text-align: right;
+}
+
+.copyright-text {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0 0 2px 0;
+}
+
+.powered-mini {
+  font-size: 10px;
+  color: #64748b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.heart-mini {
+  color: #ef4444;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .footer-container {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 16px;
+  }
+  
+  .footer-block {
+    flex: 1 1 calc(50% - 16px);
+    min-width: auto;
+  }
+  
+  .copyright-block {
+    text-align: left;
+  }
+  
+  .powered-mini {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer {
+    padding: 12px 0 8px;
+  }
+  
+  .footer-container {
+    gap: 12px;
+  }
+  
+  .footer-block {
+    flex: 1 1 100%;
+  }
+  
+  .brand-mini {
+    justify-content: center;
+  }
+  
+  .block-title {
+    text-align: center;
+  }
+  
+  .mini-links,
+  .mini-contact {
+    align-items: center;
+  }
+}

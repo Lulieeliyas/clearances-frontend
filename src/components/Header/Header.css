@@ -1,0 +1,355 @@
+/* =====================================================
+   PREMIUM GLASSMORPHIC HEADER — Modern Redesign
+   ===================================================== */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  width: 100%;
+  padding: 15px 0;
+
+  background: var(--header-bg);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.25);
+}
+
+/* ------------------ CONTAINER ------------------ */
+.header-container {
+  width: 95%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* =====================================================
+   LOGO AREA - Larger and more prominent
+   ===================================================== */
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-width: fit-content;
+}
+
+.logo-img {
+  width: 70px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.logo-img:hover {
+  transform: scale(1.08) rotate(6deg);
+  box-shadow: 0 0 18px rgba(255, 215, 0, 0.55);
+}
+
+.logo-text {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--header-text);
+  text-decoration: none;
+  position: relative;
+  transition: 0.3s ease;
+  white-space: nowrap;
+}
+
+.logo-text:hover {
+  color: #ffe454;
+  text-shadow: 0 0 14px rgba(255, 221, 85, 0.8);
+}
+
+/* =====================================================
+   RIGHT SECTION (Auth + Theme)
+   ===================================================== */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Desktop only class */
+.desktop-only {
+  display: flex;
+}
+
+/* =====================================================
+   NAVIGATION - Desktop (Always Visible)
+   ===================================================== */
+.nav {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+}
+
+.nav a {
+  color: var(--header-text);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 1.1rem;
+  padding: 8px 4px;
+  transition: color 0.3s ease;
+  position: relative;
+  white-space: nowrap;
+}
+
+/* Neon underline */
+.nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  height: 2px;
+  width: 0%;
+  background: #ffe454;
+  border-radius: 50px;
+  transition: width 0.3s ease;
+}
+
+.nav a:hover {
+  color: #ffe454;
+}
+
+.nav a:hover::after {
+  width: 100%;
+}
+
+/* Hide mobile-specific elements on desktop */
+.mobile-signin,
+.mobile-logout {
+  display: none;
+}
+
+/* =====================================================
+   AUTH BUTTONS - Desktop
+   ===================================================== */
+.header-auth .logout-btn,
+.header-auth .signin-btn {
+  padding: 8px 17px;
+  border-radius: 30px;
+  border: none;
+  font-weight: bold;
+  font-size: 1.1rem;
+  background: linear-gradient(135deg, #ffe454, #ffb300);
+  color: #003566;
+  box-shadow: 0px 3px 12px rgba(255, 215, 0, 0.4);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.header-auth .logout-btn:hover,
+.header-auth .signin-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0px 5px 16px rgba(255, 215, 0, 0.6);
+}
+
+/* =====================================================
+   THEME TOGGLE — Larger size
+   ===================================================== */
+.theme-toggle-btn {
+  width: 70px;
+  height: 50px;
+  border: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.3s ease, background 0.3s ease;
+  border-radius: 50%;
+}
+
+.theme-toggle-btn:hover {
+  transform: scale(1.15) rotate(10deg);
+}
+
+.theme-toggle-btn svg {
+  stroke: var(--header-text);
+  transition: 0.3s ease;
+  width: 24px;
+  height: 24px;
+}
+
+/* =====================================================
+   MOBILE MENU BUTTON - Hidden on Desktop
+   ===================================================== */
+.menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 2.5rem;
+  color: var(--header-text);
+  cursor: pointer;
+  width: 50px;
+  height: 50px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.3s ease;
+}
+
+.menu-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* =====================================================
+   MOBILE RESPONSIVE STYLES
+   ===================================================== */
+@media (max-width: 1024px) {
+  .logo-text {
+    font-size: 1.5rem;
+  }
+  
+  .nav {
+    gap: 20px;
+  }
+  
+  .nav a {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 850px) {
+  .menu-btn {
+    display: flex;
+  }
+
+  .desktop-only {
+    display: none !important;
+  }
+
+  .nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    background: var(--header-bg);
+    backdrop-filter: blur(12px) saturate(160%);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.45s ease;
+    z-index: 1000;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .nav.open {
+    max-height: 600px;
+    padding: 15px 0;
+  }
+
+  .nav a {
+    width: 100%;
+    text-align: center;
+    padding: 18px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 1.2rem;
+  }
+
+  .nav a:last-child {
+    border-bottom: none;
+  }
+
+  .nav a::after {
+    display: none;
+  }
+
+  .nav a:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Show mobile signin/logout buttons */
+  .mobile-signin,
+  .mobile-logout {
+    display: block !important;
+    width: 40%;
+    margin: 15px auto;
+    padding: 15px 20px;
+    border-radius: 30px;
+    border: none;
+    font-weight: bold;
+    font-size: 1.2rem;
+    background: linear-gradient(135deg, #ffe454, #ffb300);
+    color: #003566;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0px 3px 12px rgba(255, 215, 0, 0.4);
+  }
+
+  .mobile-logout {
+    background: linear-gradient(135deg, #ff6b6b, #ff4757);
+    color: white;
+  }
+
+  .header-right {
+    gap: 10px;
+  }
+
+  .theme-toggle-btn {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .theme-toggle-btn svg {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+@media (max-width: 600px) {
+  .logo-img {
+    width: 55px;
+    height: 50px;
+  }
+
+  .logo-text {
+    font-size: 1.2rem;
+  }
+
+  .menu-btn {
+    font-size: 2rem;
+    width: 45px;
+    height: 45px;
+  }
+
+  .theme-toggle-btn {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .theme-toggle-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-text {
+    font-size: 1rem;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .logo-img {
+    width: 45px;
+    height: 40px;
+  }
+}

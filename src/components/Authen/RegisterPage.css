@@ -1,0 +1,331 @@
+.register-page-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.register-card {
+  width: 100%;
+  max-width: 900px;
+  border-radius: 15px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.1);
+  background: white;
+}
+
+.register-title {
+  text-align: center;
+  color: #1890ff;
+  margin-bottom: 8px !important;
+  font-weight: 600;
+}
+
+.register-subtitle {
+  display: block;
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+/* Steps */
+.registration-steps {
+  margin: 30px 0;
+}
+
+.registration-steps .ant-steps-item-title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.registration-steps .ant-steps-item-description {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Step Content */
+.step-content-container {
+  min-height: 450px;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+/* Verification Step */
+.verification-step .step-title {
+  margin-bottom: 20px;
+  color: #1890ff;
+  display: flex;
+  align-items: center;
+}
+
+.verification-alert {
+  margin-bottom: 30px;
+  border-radius: 8px;
+}
+
+.verification-form-container {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 1px solid #e8e8e8;
+}
+
+.verify-button {
+  height: 50px;
+  font-size: 16px;
+  font-weight: 500;
+  margin-top: 20px;
+  border-radius: 8px;
+}
+
+.verification-help {
+  margin-top: 40px;
+}
+
+/* Account Step */
+.account-step .step-title {
+  margin-bottom: 20px;
+  color: #52c41a;
+  display: flex;
+  align-items: center;
+}
+
+.account-alert {
+  margin-bottom: 30px;
+  border-radius: 8px;
+}
+
+.verified-info-card {
+  margin-bottom: 30px;
+  border: 2px solid #52c41a;
+  background: linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%);
+  border-radius: 10px;
+}
+
+.student-info-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.student-info-details .ant-descriptions-item-label {
+  font-weight: 600;
+  background: #fafafa;
+}
+
+.account-form {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.step-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #e8e8e8;
+}
+
+/* Success Step */
+.success-step {
+  text-align: center;
+  padding: 20px;
+}
+
+.account-summary {
+  max-width: 600px;
+  margin: 30px auto;
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.account-summary .ant-descriptions-title {
+  color: #1890ff;
+  font-weight: 600;
+}
+
+/* Form Inputs */
+.ant-input-affix-wrapper,
+.ant-select-selector {
+  border-radius: 8px !important;
+  border: 1px solid #d9d9d9 !important;
+}
+
+.ant-input-affix-wrapper:focus,
+.ant-select-selector:focus,
+.ant-input-affix-wrapper-focused,
+.ant-select-focused .ant-select-selector {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+.ant-input-prefix {
+  color: #999;
+  margin-right: 8px;
+}
+
+/* Loading */
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .register-card {
+    margin: 10px;
+    border-radius: 10px;
+  }
+  
+  .step-buttons {
+    flex-direction: column;
+  }
+  
+  .step-buttons button {
+    margin-bottom: 10px;
+    width: 100%;
+  }
+  
+  .verification-form-container {
+    padding: 20px;
+    margin: 20px auto;
+  }
+  
+  .registration-steps .ant-steps-item-title {
+    font-size: 14px;
+  }
+  
+  .registration-steps .ant-steps-item-description {
+    display: none;
+  }
+}
+
+.register-page-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 700px;
+  border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.loading-card {
+  text-align: center;
+  padding: 60px;
+}
+
+.register-title {
+  text-align: center;
+  margin-bottom: 5px !important;
+  color: #333;
+}
+
+.register-subtitle {
+  display: block;
+  text-align: center;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.registration-steps {
+  margin: 20px 0 30px;
+}
+
+.step-content-container {
+  min-height: 400px;
+  padding: 20px 10px;
+}
+
+.verification-step, .account-step, .success-step {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.step-title {
+  text-align: center;
+  margin-bottom: 20px !important;
+  color: #333;
+}
+
+.verification-alert, .account-alert {
+  margin-bottom: 25px;
+}
+
+.verification-form-container {
+  background: #f8f9fa;
+  padding: 30px;
+  border-radius: 10px;
+}
+
+.verify-button {
+  height: 50px;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.verification-help ul {
+  padding-left: 20px;
+  margin-bottom: 0;
+}
+
+.verified-info-card {
+  margin-bottom: 25px;
+  border-color: #52c41a;
+  background-color: #f6ffed;
+}
+
+.student-info-header {
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.student-info-details {
+  background-color: white;
+}
+
+.account-form {
+  margin-top: 20px;
+}
+
+.step-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.account-summary {
+  margin-top: 20px;
+  background-color: #fafafa;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .register-card {
+    padding: 15px;
+  }
+  
+  .step-buttons {
+    flex-direction: column;
+  }
+  
+  .step-buttons button {
+    width: 100%;
+    margin: 5px 0 !important;
+  }
+}

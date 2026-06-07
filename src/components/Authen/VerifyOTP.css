@@ -1,0 +1,215 @@
+/* ===============================
+   AUTH LAYOUT
+================================ */
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #4f46e5, #06b6d4);
+    min-height: 100vh;
+    margin: 0;
+}
+
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* ===============================
+   CARD
+================================ */
+
+.auth-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 420px;
+    border-radius: 16px;
+    padding: 32px 28px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+    text-align: center;
+    animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===============================
+   TITLES
+================================ */
+
+.auth-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #1f2937;
+}
+
+.auth-subtitle {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 20px;
+}
+
+/* ===============================
+   TIMER
+================================ */
+
+.timer {
+    margin-bottom: 18px;
+    font-size: 14px;
+    color: #374151;
+}
+
+.text-primary {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+.text-danger {
+    color: #dc2626;
+    font-weight: 700;
+}
+
+/* ===============================
+   OTP INPUTS
+================================ */
+
+.otp-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 22px 0;
+}
+
+.otp-input {
+    width: 52px;
+    height: 58px;
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.otp-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+.otp-input:disabled {
+    background: #f9fafb;
+    cursor: not-allowed;
+}
+
+/* ===============================
+   BUTTONS
+================================ */
+
+.auth-button {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.auth-button.primary {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #ffffff;
+    margin-top: 10px;
+}
+
+.auth-button.primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.3);
+}
+
+.auth-button.secondary {
+    background: transparent;
+    color: #2563eb;
+    margin-top: 14px;
+}
+
+.auth-button.secondary:hover:not(:disabled) {
+    background: #eff6ff;
+}
+
+.auth-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ===============================
+   LINKS
+================================ */
+
+.auth-links {
+    margin-top: 18px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.auth-link {
+    font-size: 13px;
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.auth-link:hover {
+    text-decoration: underline;
+}
+
+/* ===============================
+   ALERTS
+================================ */
+
+.alert {
+    margin-top: 18px;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+.alert-success {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.alert-error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+/* ===============================
+   RESPONSIVE
+================================ */
+
+@media (max-width: 480px) {
+    .otp-input {
+        width: 44px;
+        height: 50px;
+        font-size: 18px;
+    }
+
+    .auth-card {
+        padding: 26px 22px;
+    }
+}

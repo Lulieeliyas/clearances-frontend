@@ -1,0 +1,58 @@
+.admin-login-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  position: relative;
+}
+
+.admin-login-card {
+  animation: fadeIn 0.5s ease-in-out;
+  z-index: 1;
+}
+
+.admin-login-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 80%, rgba(24, 144, 255, 0.1) 0%, transparent 20%),
+    radial-gradient(circle at 80% 20%, rgba(82, 196, 26, 0.1) 0%, transparent 20%);
+}
+
+.admin-login-footer {
+  margin-top: 30px;
+  text-align: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .admin-login-container {
+    padding: 10px;
+  }
+  
+  .admin-login-card {
+    width: 95% !important;
+    padding: 30px 20px !important;
+  }
+}
