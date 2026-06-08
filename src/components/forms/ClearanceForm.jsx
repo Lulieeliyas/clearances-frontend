@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { apiRequest } from "../utils/api";
+import { apiRequest } from "../../utils/api";
 import "./ClearanceForm.css";
 
 export default function ClearanceForm() {
