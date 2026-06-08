@@ -47,12 +47,12 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import { API_BASE } from '../../utils/api';
 
 const { Title, Text, Paragraph } = Typography;
 const { TabPane } = Tabs;
 const { TextArea } = AntInput;
 const { Option } = Select;
-const API_BASE = "http://127.0.0.1:8000/api/";
 
 export default function StaffPaymentVerification() {
   const navigate = useNavigate();

@@ -12,7 +12,7 @@ import {
   FileTextOutlined, TeamOutlined, ExportOutlined,
   InfoCircleOutlined, FileExcelOutlined
 } from '@ant-design/icons';
-import { apiFetch } from '../utils/api';
+import { apiFetch, API_BASE } from '../utils/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -214,7 +214,7 @@ const CSVManagement = () => {
 
   const exportToCSV = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/admin/export-students-csv/', {
+      const response = await fetch(`${API_BASE}admin/export-students-csv/`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }

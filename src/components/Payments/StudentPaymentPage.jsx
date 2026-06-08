@@ -47,13 +47,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import copy from 'copy-to-clipboard';
+import { API_BASE } from '../../utils/api';
+
 
 const { Title, Text } = Typography;
 const { Step } = Steps;
 const { Option } = Select;
 const { Panel } = Collapse;
-
-const API_BASE = "http://127.0.0.1:8000/api/";
 
 export default function StudentPaymentPage() {
   const navigate = useNavigate();
