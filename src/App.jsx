@@ -37,6 +37,7 @@ import ProfilePage from "./components/Pages/ProfilePage";
 import ChangeProfile from "./components/Pages/ChangeProfile";
 import AdminLogin from "./components/Authen/AdminLogin";
  import LearnMorePage from "./components/Pages/LearnMorePage";
+ import ErrorBoundary from './components/ErrorBoundary';
 
 // Import the payment components
 import StudentPaymentPage from "./components/Payments/StudentPaymentPage";
@@ -80,6 +81,8 @@ export function ThemeToggle() {
     </button>
   );
 }
+
+
 
 /* ===============================
    ✅ Protected Route
@@ -295,6 +298,7 @@ useEffect(() => {
 }, []);
 
   return (
+     <ErrorBoundary>
     <ThemeContext.Provider value={{ theme, setTheme }}>
       <Router>
         <div className="app-root">
@@ -566,5 +570,6 @@ useEffect(() => {
         </div>
       </Router>
     </ThemeContext.Provider>
+    </ErrorBoundary>
   );
 }

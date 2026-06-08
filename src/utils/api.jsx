@@ -1,4 +1,6 @@
-export const API_BASE = "https://clearances.onrender.com/api/";
+export const API_BASE = process.env.NODE_ENV === 'production' 
+  ? "https://clearances.onrender.com/api/"
+  : "http://localhost:8000/api/";
 
 // ---------------- SESSION ----------------
 export function setSession(userData) {
@@ -59,6 +61,13 @@ export function isTokenValid() {
   return !!(session?.token);
 }
 
+export function debugAuth() {
+  const session = getSession();
+  console.log("Session exists:", !!session);
+  console.log("Token exists:", !!session?.token);
+  console.log("Token value:", session?.token?.substring(0, 20) + "...");
+  console.log("Role:", session?.role);
+}
 // ---------------- ROLE CHECK ----------------
 export function hasRole(role) {
   const session = getSession();

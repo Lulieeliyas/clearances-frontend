@@ -47,8 +47,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import copy from 'copy-to-clipboard';
-import { API_BASE } from '../../utils/api';
-
+import { API_BASE,getToken, getSession } from '../../utils/api';
 
 const { Title, Text } = Typography;
 const { Step } = Steps;
@@ -100,6 +99,7 @@ export default function StudentPaymentPage() {
       return;
     }
 
+    
     const parsed = JSON.parse(stored);
     if (parsed.role !== "student") {
       message.error("Access denied. Student only.");
