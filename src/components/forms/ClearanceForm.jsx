@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState,useCallback } from "react";
 import { apiRequest } from "../../utils/api";
 import "./ClearanceForm.css";
 
@@ -38,7 +38,7 @@ export default function ClearanceForm() {
   };
 
   // Check if user has an active form
-  const checkActiveForms = async () => {
+const checkActiveForms = useCallback(async () => {
     setCheckingForms(true);
     try {
       const session = getSession();
@@ -85,7 +85,7 @@ export default function ClearanceForm() {
     } finally {
       setCheckingForms(false);
     }
-  };
+  },[]);
 
   /* ================= LOAD COLLEGES & DEPARTMENTS ================= */
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function ClearanceForm() {
     };
 
     loadData();
-  }, []);
+  }, [checkActiveForms]);
 
   /* ================= FILTER DEPARTMENTS BY COLLEGE ================= */
   useEffect(() => {
