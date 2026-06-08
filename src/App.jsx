@@ -287,12 +287,13 @@ export default function App() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/view/")
-      .then((res) => res.json())
-      .then((data) => setMessage(data.message))
-      .catch((err) => console.error(err));
-  }, []);
+useEffect(() => {
+  // Use your actual backend API URL
+  fetch("https://clearances.onrender.com/api/view/")
+    .then((res) => res.json())
+    .then((data) => setMessage(data.message))
+    .catch((err) => console.error("API fetch error:", err));
+}, []);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
