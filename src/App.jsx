@@ -43,7 +43,6 @@ import StudentPaymentPage from "./components/Payments/StudentPaymentPage";
 import StaffPaymentVerification from "./components/Payments/StaffPaymentVerification";
 
 import "./App.css";
-import { Color } from "antd/es/color-picker";
 
 /* ===============================
    ✅ Theme Context (Global)
