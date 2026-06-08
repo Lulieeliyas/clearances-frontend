@@ -24,9 +24,7 @@ import {
   Select,
   Divider,
   List,
-  Tooltip,
-  FormItem,
-  Collapse
+  Tooltip
 } from "antd";
 import {
   EyeOutlined,
@@ -47,12 +45,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import copy from 'copy-to-clipboard';
-import { API_BASE,getToken, getSession } from '../../utils/api';
+import { API_BASE } from '../../utils/api';
 
 const { Title, Text } = Typography;
 const { Step } = Steps;
 const { Option } = Select;
-const { Panel } = Collapse;
 
 export default function StudentPaymentPage() {
   const navigate = useNavigate();
@@ -889,12 +886,14 @@ export default function StudentPaymentPage() {
                     value={selectedMethod}
                     showSearch
                     filterOption={(input, option) =>
-                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                    }
+  String(option?.label || '')
+    .toLowerCase()
+    .includes(input.toLowerCase())
+}
                     allowClear
                   >
                     {paymentMethods.map((method) => (
-                      <Option key={method.id} value={method.id}>
+                      <Option key={method.id} value={method.id} label={method.name}>
                         <Space>
                           {method.name.toLowerCase().includes('telebirr') || method.name.toLowerCase().includes('mobile') ? 
                             <PhoneOutlined /> : <BankOutlined />}
@@ -1091,7 +1090,7 @@ export default function StudentPaymentPage() {
                       extra="Upload clear image or PDF of payment confirmation (max 10MB)"
                     >
                       <Upload
-                        listType="picture-card"
+                        listType="picture"
                         fileList={fileList}
                         onChange={handleFileChange}
                         beforeUpload={beforeUpload}
