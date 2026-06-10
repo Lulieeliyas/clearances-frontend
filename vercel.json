@@ -1,0 +1,11 @@
+{
+  "buildCommand": "CI=false npm run build",
+  "outputDirectory": "build",
+  "devCommand": "npm start",
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": "create-react-app",
+  "env": {
+    "CI": "false",
+    "REACT_APP_API_URL": "https://clearances.onrender.com/api/"
+  }
+}
