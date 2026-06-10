@@ -9,7 +9,8 @@ import {
   message,
 } from "antd";
 
-const API_BASE = "http://127.0.0.1:8000/api/";
+import { API_BASE } from '../../utils/api.jsx';
+
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -1730,3 +1731,4 @@ const getStepStatusInfo = (form, deptName) => {
     </div>
   );
 }
+

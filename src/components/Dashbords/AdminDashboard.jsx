@@ -1,3 +1,4 @@
+import { API_BASE } from '../../utils/api.jsx';
 import React, { useEffect, useState, useCallback } from "react";
 import {
   Card,
@@ -422,7 +423,7 @@ const assignBuildingsToStaff = async (staffId, values) => {
         ? JSON.parse(sessionStorage.getItem("ucs_current")).token 
         : '';
       
-      window.open(`http://127.0.0.1:8000/api/admin/export-building-stats/?token=${token}`, '_blank');
+      window.open(`${API_BASE}admin/export-building-stats/?token=${token}`, '_blank');
     } catch (err) {
       message.error("Failed to export building statistics");
     }
@@ -447,7 +448,19 @@ const assignBuildingsToStaff = async (staffId, values) => {
         }));
       } catch (err) {
         console.warn("Failed to load stats:", err.message);
-        setStats(generateMockStats());
+                    setStats({
+                total_users: 0,
+                active_departments: 0,
+                total_colleges: 0,
+                total_forms: 0,
+                approved_forms: 0,
+                pending_forms: 0,
+                rejected_forms: 0,
+                efficiency: 0,
+                avg_processing_time: "0",
+                today_forms: 0,
+                weekly_trend: "+0%"
+            });
       }
       
       // Load users
@@ -628,7 +641,7 @@ const assignBuildingsToStaff = async (staffId, values) => {
         ? JSON.parse(sessionStorage.getItem("ucs_current")).token 
         : '';
       
-      const response = await fetch('http://127.0.0.1:8000/api/admin/csv-upload/', {
+      const response = await fetch('${API_BASE}admin/csv-upload/', {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
@@ -694,7 +707,7 @@ const assignBuildingsToStaff = async (staffId, values) => {
       ? JSON.parse(sessionStorage.getItem("ucs_current")).token 
       : '';
     
-    window.open(`http://127.0.0.1:8000/api/admin/download-csv-template/?token=${token}`, '_blank');
+    window.open(`${API_BASE}admin/download-csv-template/?token=${token}`, '_blank');
   };
 
   // ==================== PAYMENT MANAGEMENT FUNCTIONS ====================
@@ -825,7 +838,7 @@ const assignBuildingsToStaff = async (staffId, values) => {
     try {
       console.log("Debugging payment methods...");
       
-      const adminResponse = await fetch('http://127.0.0.1:8000/api/admin/payment-methods/all/', {
+      const adminResponse = await fetch('${API_BASE}admin/payment-methods/all/', {
         headers: {
           'Authorization': `Token ${session.token}`,
           'Content-Type': 'application/json',
@@ -835,7 +848,7 @@ const assignBuildingsToStaff = async (staffId, values) => {
       const adminData = await adminResponse.json();
       console.log("Admin endpoint data:", adminData);
       
-      const publicResponse = await fetch('http://127.0.0.1:8000/api/payment/methods/');
+      const publicResponse = await fetch('${API_BASE}payment/methods/');
       console.log("Public endpoint status:", publicResponse.status);
       const publicData = await publicResponse.json();
       console.log("Public endpoint data:", publicData);
@@ -5842,3 +5855,5 @@ const createStaff = async (values) => {
     </div>
   );
 }
+
+
