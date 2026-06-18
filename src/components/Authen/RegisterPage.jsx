@@ -1,3 +1,4 @@
+// RegisterPage.jsx - Complete Fixed Version
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -32,6 +33,7 @@ import {
   InfoCircleOutlined,
   SearchOutlined,
   HomeOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import "./RegisterPage.css";
 
@@ -39,8 +41,10 @@ const { Title, Text } = Typography;
 const { Step } = Steps;
 const { Option } = Select;
 
-// API base URL
-const API_BASE = "http://127.0.0.1:8000/api/";
+// ✅ FIXED: Use environment-aware API base URL
+const API_BASE = process.env.NODE_ENV === 'production' 
+  ? "https://clearances.onrender.com/api/"
+  : "http://127.0.0.1:8000/api/";
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
@@ -53,44 +57,83 @@ export default function RegisterPage() {
   const [buildingsLoading, setBuildingsLoading] = useState(false);
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [selectedCollege, setSelectedCollege] = useState(null);
+  const [loadingData, setLoadingData] = useState(true);
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
   // Steps for the registration process
   const steps = [
-    {
-      title: "Verify ID",
-      content: "Enter your Student ID",
-    },
-    {
-      title: "Create Account",
-      content: "Set up your account",
-    },
-    {
-      title: "Complete",
-      content: "Registration successful",
-    },
+    { title: "Verify ID", content: "Enter your Student ID" },
+    { title: "Create Account", content: "Set up your account" },
+    { title: "Complete", content: "Registration successful" },
   ];
 
-  // Fetch colleges, departments, and buildings
+  // ✅ FIXED: Fetch colleges, departments, and buildings with proper error handling
   useEffect(() => {
     const fetchData = async () => {
+      setLoadingData(true);
       try {
+        console.log("Fetching data from:", API_BASE);
+        
+        // Fetch all data in parallel
         const [collegeRes, deptRes, buildingRes] = await Promise.all([
           fetch(`${API_BASE}public/colleges/`),
           fetch(`${API_BASE}public/departments/`),
           fetch(`${API_BASE}buildings/active/`),
         ]);
-        
-        if (collegeRes.ok) setColleges(await collegeRes.json());
-        if (deptRes.ok) setDepartments(await deptRes.json());
-        if (buildingRes.ok) {
-          const buildingData = await buildingRes.json();
-          setBuildings(buildingData.buildings || buildingData);
+
+        console.log("College response status:", collegeRes.status);
+        console.log("Department response status:", deptRes.status);
+        console.log("Building response status:", buildingRes.status);
+
+        let collegeData = [];
+        let deptData = [];
+        let buildingData = [];
+
+        // Parse responses
+        if (collegeRes.ok) {
+          collegeData = await collegeRes.json();
+          console.log("Colleges loaded:", collegeData.length);
+        } else {
+          console.warn("Failed to load colleges:", collegeRes.status);
         }
+
+        if (deptRes.ok) {
+          deptData = await deptRes.json();
+          console.log("Departments loaded:", deptData.length);
+        } else {
+          console.warn("Failed to load departments:", deptRes.status);
+        }
+
+        if (buildingRes.ok) {
+          const buildingJson = await buildingRes.json();
+          buildingData = buildingJson.buildings || buildingJson || [];
+          console.log("Buildings loaded:", buildingData.length);
+        } else {
+          console.warn("Failed to load buildings:", buildingRes.status);
+        }
+
+        // Set data
+        setColleges(Array.isArray(collegeData) ? collegeData : []);
+        setDepartments(Array.isArray(deptData) ? deptData : []);
+        setBuildings(Array.isArray(buildingData) ? buildingData : []);
+
+        // Show warnings if data is missing
+        if (collegeData.length === 0) {
+          message.warning("No colleges found. Please contact administrator.");
+        }
+        if (deptData.length === 0) {
+          message.warning("No departments found. Please contact administrator.");
+        }
+        if (buildingData.length === 0) {
+          message.info("No dormitory buildings available.");
+        }
+
       } catch (error) {
         console.error("Failed to load data:", error);
-        message.error("Failed to load colleges, departments, or buildings");
+        message.error("Failed to load colleges, departments, or buildings. Please refresh the page.");
+      } finally {
+        setLoadingData(false);
       }
     };
     fetchData();
@@ -99,15 +142,21 @@ export default function RegisterPage() {
   // Filter departments when college is selected
   useEffect(() => {
     if (selectedCollege) {
-      setFilteredDepartments(
-        departments.filter((d) => d.college === selectedCollege)
-      );
+      const filtered = departments.filter((d) => d.college === selectedCollege);
+      setFilteredDepartments(filtered);
+      console.log("Filtered departments:", filtered.length);
     } else {
       setFilteredDepartments([]);
     }
   }, [selectedCollege, departments]);
 
-  // Step 1: Verify student by ID only
+  // Retry loading data
+  const retryLoading = () => {
+    setLoadingData(true);
+    window.location.reload();
+  };
+
+  // Step 1: Verify student by ID
   const onVerifyStudentID = async () => {
     const id_number = form.getFieldValue("id_number");
     
@@ -118,6 +167,8 @@ export default function RegisterPage() {
 
     setVerifying(true);
     try {
+      console.log("Verifying student ID:", id_number);
+      
       const res = await fetch(`${API_BASE}verify-student-by-id/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -125,6 +176,7 @@ export default function RegisterPage() {
       });
 
       const data = await res.json();
+      console.log("Verification response:", data);
 
       if (res.ok) {
         // Save verified student info
@@ -179,8 +231,8 @@ export default function RegisterPage() {
         }
       }
     } catch (error) {
-      message.error("Network error. Please try again.");
       console.error("Verification error:", error);
+      message.error("Network error. Please try again.");
     } finally {
       setVerifying(false);
     }
@@ -193,7 +245,6 @@ export default function RegisterPage() {
       const payload = {
         role: "student",
         ...values,
-        // Include verified student data
         first_name: verifiedStudent.first_name,
         last_name: verifiedStudent.last_name,
         id_number: verifiedStudent.id_number,
@@ -208,43 +259,38 @@ export default function RegisterPage() {
       });
 
       const data = await res.json();
+      console.log("Registration response:", data);
 
       if (res.ok) {
         message.success("🎉 Account created successfully!");
-        setCurrentStep(2); // Move to success step
+        setCurrentStep(2);
         
-        // Store login info
         localStorage.setItem("registration_success", JSON.stringify({
           email: values.email,
           student_name: verifiedStudent.full_name,
         }));
-      } else if (data.error?.includes("already registered")) {
-        Modal.info({
-          title: "Already Registered",
-          content: (
-            <div>
-              <p>This student ID is already registered.</p>
-              <p><strong>Name:</strong> {verifiedStudent.full_name}</p>
-              <p><strong>Student ID:</strong> {verifiedStudent.id_number}</p>
-              <p>Please use the login page to access your account.</p>
-            </div>
-          ),
-          onOk: () => navigate("/login"),
-        });
       } else {
         // Show validation errors
         if (data.errors) {
           const errorMessages = Object.entries(data.errors)
             .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
             .join('\n');
-          message.error(errorMessages || data.message || "Registration failed");
+          Modal.error({
+            title: "Registration Failed",
+            content: (
+              <div>
+                <p>Please fix the following errors:</p>
+                <pre style={{ whiteSpace: 'pre-wrap' }}>{errorMessages}</pre>
+              </div>
+            ),
+          });
         } else {
-          message.error(data.message || "Registration failed");
+          message.error(data.message || data.error || "Registration failed");
         }
       }
     } catch (error) {
-      message.error("Server error. Please try again.");
       console.error("Registration error:", error);
+      message.error("Server error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -258,10 +304,29 @@ export default function RegisterPage() {
     form.resetFields();
   };
 
+  // Show loading state
+  if (loadingData) {
+    return (
+      <div className="register-page-container">
+        <Card className="register-card loading-card">
+          <Spin 
+            indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
+            tip="Loading registration data..."
+            size="large"
+          >
+            <div style={{ padding: '50px', textAlign: 'center' }}>
+              <p>Loading colleges, departments, and buildings...</p>
+            </div>
+          </Spin>
+        </Card>
+      </div>
+    );
+  }
+
   // Render step content
   const renderStepContent = () => {
     switch (currentStep) {
-      case 0: // Step 1: ID Verification
+      case 0:
         return (
           <div className="verification-step">
             <Title level={3} className="step-title">
@@ -328,14 +393,13 @@ export default function RegisterPage() {
           </div>
         );
 
-      case 1: // Step 2: Create Account
+      case 1:
         return (
           <div className="account-step">
             <Title level={3} className="step-title">
               <UserOutlined /> Create Your Account
             </Title>
             
-            {/* Display verified student info */}
             {verifiedStudent && (
               <Card className="verified-info-card" size="small">
                 <div className="student-info-header">
@@ -379,9 +443,6 @@ export default function RegisterPage() {
               layout="vertical" 
               onFinish={onCreateAccount}
               className="account-form"
-              initialValues={{
-                building: null,
-              }}
             >
               <Row gutter={16}>
                 <Col span={12}>
@@ -433,9 +494,10 @@ export default function RegisterPage() {
               >
                 <Select 
                   onChange={setSelectedCollege}
-                  placeholder="Select your college"
+                  placeholder={colleges.length === 0 ? "No colleges available" : "Select your college"}
                   size="large"
                   allowClear
+                  disabled={colleges.length === 0}
                 >
                   {colleges.map((c) => (
                     <Option key={c.id} value={c.id}>
@@ -451,20 +513,19 @@ export default function RegisterPage() {
                 rules={[{ required: true, message: "Please select your department" }]}
               >
                 <Select 
-                  placeholder="Select your department"
+                  placeholder={filteredDepartments.length === 0 ? "No departments available" : "Select your department"}
                   size="large"
-                  disabled={!selectedCollege}
+                  disabled={!selectedCollege || filteredDepartments.length === 0}
                   allowClear
                 >
                   {filteredDepartments.map((d) => (
-                    <Option key={d.id} value={d.name}>
+                    <Option key={d.id} value={d.id}>
                       {d.name}
                     </Option>
                   ))}
                 </Select>
               </Form.Item>
 
-              {/* Building Selection Component */}
               <Form.Item
                 label="Dormitory Building"
                 name="building"
@@ -472,7 +533,7 @@ export default function RegisterPage() {
                 tooltip="Select the building where you currently reside"
               >
                 <Select 
-                  placeholder="Select your dormitory building"
+                  placeholder={buildings.length === 0 ? "No buildings available" : "Select your dormitory building"}
                   loading={buildingsLoading}
                   size="large"
                   allowClear
@@ -553,9 +614,8 @@ export default function RegisterPage() {
           </div>
         );
 
-      case 2: // Step 3: Success
+      case 2:
         const selectedBuilding = buildings.find(b => b.id === form.getFieldValue("building"));
-        
         return (
           <div className="success-step">
             <Result
@@ -597,7 +657,7 @@ export default function RegisterPage() {
                   {colleges.find(c => c.id === form.getFieldValue("college"))?.name || "Not selected"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Department">
-                  {form.getFieldValue("department") || "Not selected"}
+                  {departments.find(d => d.id === form.getFieldValue("department"))?.name || "Not selected"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Dormitory Building">
                   {selectedBuilding ? (
@@ -619,37 +679,29 @@ export default function RegisterPage() {
     }
   };
 
-  if (verifying && currentStep === 0) {
-    return (
-      <div className="register-page-container">
-        <Card className="register-card loading-card">
-          <Spin 
-            indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
-            tip="Verifying your student ID..."
-            size="large"
-          >
-            <div style={{ padding: '50px', textAlign: 'center' }}>
-              <p>Please wait while we verify your information...</p>
-            </div>
-          </Spin>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="register-page-container">
       <Card className="register-card">
-        <Title level={2} className="register-title">
-          🎓 Student Registration
-        </Title>
-        <Text className="register-subtitle">
-          Verify with Student ID • Create Your Account
-        </Text>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <Title level={2} className="register-title">
+              🎓 Student Registration
+            </Title>
+            <Text className="register-subtitle">
+              Verify with Student ID • Create Your Account
+            </Text>
+          </div>
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={retryLoading}
+            type="text"
+          >
+            Refresh
+          </Button>
+        </div>
 
         <Divider />
 
-        {/* Progress Steps */}
         <Steps current={currentStep} className="registration-steps">
           {steps.map((step, index) => (
             <Step 
@@ -663,7 +715,6 @@ export default function RegisterPage() {
 
         <Divider />
 
-        {/* Step Content */}
         <div className="step-content-container">
           {renderStepContent()}
         </div>
