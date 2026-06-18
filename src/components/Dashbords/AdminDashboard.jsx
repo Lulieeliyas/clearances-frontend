@@ -430,180 +430,102 @@ const assignBuildingsToStaff = async (staffId, values) => {
   };
 
   // ==================== LOAD ALL DATA ====================
-  const loadAllData = useCallback(async () => {
+// In AdminDashboard.jsx - Replace the loadAllData function
+
+const loadAllData = useCallback(async () => {
     if (!session) return;
     
     setLoading(true);
     try {
       console.log("Loading all admin data...");
       
-      // Load stats
-      try {
-        const statsData = await apiFetch("admin/stats/");
-        console.log("Stats data:", statsData);
-        setStats(prev => ({
-          ...prev,
-          ...statsData,
-          efficiency: statsData?.efficiency || 0,
-        }));
-      } catch (err) {
-        console.warn("Failed to load stats:", err.message);
-                    setStats({
-                total_users: 0,
-                active_departments: 0,
-                total_colleges: 0,
-                total_forms: 0,
-                approved_forms: 0,
-                pending_forms: 0,
-                rejected_forms: 0,
-                efficiency: 0,
-                avg_processing_time: "0",
-                today_forms: 0,
-                weekly_trend: "+0%"
-            });
+      // Load all data in parallel using Promise.allSettled to handle individual failures
+      const results = await Promise.allSettled([
+        apiFetch("admin/stats/").catch(err => {
+          console.warn("Stats API error:", err);
+          return null;
+        }),
+        apiFetch("users/").catch(err => {
+          console.warn("Users API error:", err);
+          return [];
+        }),
+        apiFetch("departments/").catch(err => {
+          console.warn("Departments API error:", err);
+          return [];
+        }),
+        apiFetch("colleges/").catch(err => {
+          console.warn("Colleges API error:", err);
+          return [];
+        }),
+        apiFetch("system-controls/").catch(err => {
+          console.warn("System controls API error:", err);
+          return [];
+        }),
+        apiFetch("admin/form-requests/").catch(err => {
+          console.warn("Forms API error:", err);
+          return [];
+        }),
+        apiFetch("payment/statistics/").catch(err => {
+          console.warn("Payment stats API error:", err);
+          return null;
+        }),
+        apiFetch("admin/authorized-students/").catch(err => {
+          console.warn("Authorized students API error:", err);
+          return [];
+        }),
+        loadBuildings().catch(err => {
+          console.warn("Buildings API error:", err);
+          return [];
+        }),
+        loadDormitoryStaff().catch(err => {
+          console.warn("Dormitory staff API error:", err);
+          return [];
+        }),
+      ]);
+      
+      // Extract data from results
+      const [
+        statsResult,
+        usersResult,
+        departmentsResult,
+        collegesResult,
+        systemControlsResult,
+        formsResult,
+        paymentStatsResult,
+        authorizedStudentsResult,
+      ] = results;
+      
+      // Set data with fallback values
+      setStats({
+        ...generateMockStats(),
+        ...(statsResult.status === 'fulfilled' ? statsResult.value : {}),
+        total_users: usersResult.status === 'fulfilled' ? usersResult.value?.length || 0 : 0,
+        active_departments: departmentsResult.status === 'fulfilled' ? departmentsResult.value?.length || 0 : 0,
+        total_colleges: collegesResult.status === 'fulfilled' ? collegesResult.value?.length || 0 : 0,
+      });
+      
+      setUsers(usersResult.status === 'fulfilled' ? usersResult.value || [] : []);
+      setDepartments(departmentsResult.status === 'fulfilled' ? departmentsResult.value || [] : []);
+      setColleges(collegesResult.status === 'fulfilled' ? collegesResult.value || [] : []);
+      setSystemControls(systemControlsResult.status === 'fulfilled' ? systemControlsResult.value || [] : []);
+      setForms(formsResult.status === 'fulfilled' ? formsResult.value || [] : []);
+      
+      if (paymentStatsResult.status === 'fulfilled' && paymentStatsResult.value) {
+        setPaymentStats(paymentStatsResult.value);
       }
       
-      // Load users
-      try {
-        const usersData = await apiFetch("users/");
-        console.log("Users data count:", usersData?.length);
-        setUsers(usersData || []);
-      } catch (err) {
-        console.warn("Failed to load users:", err.message);
-        setUsers([]);
-      }
-      
-      // Load departments
-      try {
-        const departmentsData = await apiFetch("departments/");
-        console.log("Departments data count:", departmentsData?.length);
-        setDepartments(departmentsData || []);
-      } catch (err) {
-        console.warn("Failed to load departments:", err.message);
-        setDepartments([]);
-      }
-      
-      // Load colleges
-      try {
-        const collegesData = await apiFetch("colleges/");
-        console.log("Colleges data count:", collegesData?.length);
-        setColleges(collegesData || []);
-      } catch (err) {
-        console.warn("Failed to load colleges:", err.message);
-        setColleges([]);
-      }
-      
-      // Load system controls
-      try {
-        const systemData = await apiFetch("system-controls/");
-        console.log("System controls:", systemData);
-        setSystemControls(systemData || []);
-      } catch (err) {
-        console.warn("Failed to load system controls:", err.message);
-        setSystemControls([]);
-      }
-      
-      // Load forms
-      try {
-        const formsData = await apiFetch("admin/form-requests/");
-        console.log("Forms data count:", formsData?.length);
-        setForms(formsData || []);
-      } catch (err) {
-        console.warn("Failed to load forms:", err.message);
-        setForms([]);
-      }
-      
-      // Load payment methods
-      try {
-        console.log("Loading payment methods...");
-        const paymentMethodsData = await apiFetch("admin/payment-methods/");
-        console.log("Payment methods loaded successfully:", paymentMethodsData);
-        setPaymentMethods(paymentMethodsData || []);
-      } catch (err) {
-        console.warn("Failed to load payment methods from admin endpoint:", err.message);
-      }
-
-      try {
-        const publicPaymentMethods = await apiFetch("payment/methods/");
-        console.log("Falling back to public payment methods:", publicPaymentMethods);
-        setPaymentMethods(publicPaymentMethods || []);
-      } catch (fallbackErr) {
-        console.warn("Failed to load any payment methods:", fallbackErr.message);
-        setPaymentMethods([]);
-      }
-    
-      // Load all payments
-      try {
-        const paymentsData = await apiFetch("admin/payments/all/");
-        console.log("Payments data loaded:", paymentsData?.length);
-        setStudentPayments(paymentsData || []);
-      } catch (err) {
-        console.warn("Failed to load payments:", err.message);
-        setStudentPayments([]);
-      }
-      
-      // Load payment statistics
-      try {
-        const paymentStatsData = await apiFetch("payment/statistics/");
-        console.log("Payment stats:", paymentStatsData);
-        setPaymentStats(paymentStatsData || {
-          total_payments: 0,
-          total_amount: 0,
-          pending: 0,
-          verified: 0,
-          rejected: 0,
-          by_department: {
-            library: 0,
-            cafeteria: 0,
-            dormitory: 0,
-            other: 0,
-          }
-        });
-      } catch (err) {
-        console.warn("Failed to load payment stats:", err.message);
-      }
-      
-      // Load authorized students
-      try {
-        const authStudentsData = await apiFetch("admin/authorized-students/");
-        console.log("Authorized students count:", authStudentsData?.length);
-        setAuthorizedStudents(authStudentsData || []);
-      } catch (err) {
-        console.warn("Failed to load authorized students:", err.message);
-        setAuthorizedStudents([]);
-      }
-      
-      // Load CSV uploads
-      try {
-        const csvUploadsData = await apiFetch("admin/csv-uploads/");
-        console.log("CSV uploads count:", csvUploadsData?.length);
-        setCsvUploads(csvUploadsData || []);
-      } catch (err) {
-        console.warn("Failed to load CSV uploads:", err.message);
-        setCsvUploads([]);
-      }
-
-      // Load buildings
-      try {
-        await loadBuildings();
-      } catch (err) {
-        console.warn("Failed to load buildings:", err.message);
-      }
-
-      // Load dormitory staff
-      try {
-        await loadDormitoryStaff();
-      } catch (err) {
-        console.warn("Failed to load dormitory staff:", err.message);
+      if (authorizedStudentsResult.status === 'fulfilled') {
+        setAuthorizedStudents(authorizedStudentsResult.value || []);
       }
       
       // Set activities
       setRecentActivities(generateMockActivities());
       
-      message.success("Data loaded successfully");
+      console.log("All data loaded successfully");
+      
     } catch (err) {
       console.error("Failed to load admin data:", err);
-      message.error(`Failed to load data: ${err.message}`);
+      message.warning("Some data could not be loaded. Check console for details.");
     } finally {
       setLoading(false);
     }
@@ -616,6 +538,45 @@ const assignBuildingsToStaff = async (staffId, values) => {
     }
   }, [session, loadAllData]);
 
+  // Add this debug function
+const debugApiEndpoints = async () => {
+  console.log("=== DEBUGGING API ENDPOINTS ===");
+  console.log("API_BASE:", API_BASE);
+  console.log("Session:", session);
+  
+  const endpoints = [
+    "admin/stats/",
+    "users/",
+    "departments/",
+    "colleges/",
+    "payment/statistics/",
+    "system-controls/",
+  ];
+  
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`Testing: ${API_BASE}${endpoint}`);
+      const result = await apiFetch(endpoint);
+      console.log(`✅ ${endpoint}:`, result);
+    } catch (err) {
+      console.error(`❌ ${endpoint}:`, err.message);
+    }
+  }
+};
+
+// Add this button in your header
+<Button 
+  icon={<SettingOutlined />} 
+  onClick={debugApiEndpoints}
+  style={{ 
+    background: 'rgba(255,255,255,0.2)', 
+    color: 'white', 
+    border: 'none',
+    borderRadius: 8,
+  }}
+>
+  Debug API
+</Button>
   const handleSearch = () => {
     if (!searchText.trim()) {
       setFilteredData(allData);

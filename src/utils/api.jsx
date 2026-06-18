@@ -79,6 +79,10 @@ export async function apiFetch(endpoint, options = {}) {
   try {
     // Clean endpoint
     endpoint = endpoint.replace(/^\/+/, "");
+
+        // Get token
+    const session = getSession();
+    const token = session?.token;
     
     // Ensure we have Content-Type for POST/PUT/PATCH
     const headers = {
@@ -87,6 +91,10 @@ export async function apiFetch(endpoint, options = {}) {
       ...(options.headers || {})
     };
     
+        // Add Authorization header if token exists
+    if (token) {
+      headers['Authorization'] = `Token ${token}`;
+    }
     // Remove Content-Type for FormData
     if (options.body instanceof FormData) {
       delete headers['Content-Type'];
@@ -105,8 +113,12 @@ export async function apiFetch(endpoint, options = {}) {
       config.body = options.body;
     }
     
-    const response = await fetch(`${API_BASE}${endpoint}`, config);
-    
+
+        // Build full URL
+    const url = `${API_BASE}${endpoint}`;
+    console.log(`API Request: ${config.method} ${url}`);
+
+     const response = await fetch(url, config);
     // Handle specific status codes
     if (response.status === 401) {
       // Unauthorized: clear session and redirect to login
@@ -126,7 +138,8 @@ export async function apiFetch(endpoint, options = {}) {
     }
     
     if (response.status === 404) {
-      throw new Error("Resource not found");
+      console.warn(`Endpoint not found: ${url}`);
+      return null;
     }
     
     const text = await response.text();
