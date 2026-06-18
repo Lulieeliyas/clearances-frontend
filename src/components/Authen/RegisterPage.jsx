@@ -1,4 +1,4 @@
-// RegisterPage.jsx - Complete Fixed Version
+// RegisterPage.jsx - Complete Fixed Version with Debugging
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -27,13 +27,12 @@ import {
   IdcardOutlined,
   CheckCircleOutlined,
   LoadingOutlined,
-  VerifiedOutlined,
   ArrowRightOutlined,
   ArrowLeftOutlined,
-  InfoCircleOutlined,
   SearchOutlined,
   HomeOutlined,
   ReloadOutlined,
+  BugOutlined,
 } from "@ant-design/icons";
 import "./RegisterPage.css";
 
@@ -41,7 +40,7 @@ const { Title, Text } = Typography;
 const { Step } = Steps;
 const { Option } = Select;
 
-// ✅ FIXED: Use environment-aware API base URL
+// ✅ Use environment-aware API base URL
 const API_BASE = process.env.NODE_ENV === 'production' 
   ? "https://clearances.onrender.com/api/"
   : "http://127.0.0.1:8000/api/";
@@ -54,10 +53,11 @@ export default function RegisterPage() {
   const [colleges, setColleges] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [buildings, setBuildings] = useState([]);
-  const [buildingsLoading, setBuildingsLoading] = useState(false);
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [selectedCollege, setSelectedCollege] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
+  const [debugInfo, setDebugInfo] = useState(null);
+  const [showDebug, setShowDebug] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
@@ -68,70 +68,72 @@ export default function RegisterPage() {
     { title: "Complete", content: "Registration successful" },
   ];
 
-  // ✅ FIXED: Fetch colleges, departments, and buildings with proper error handling
+  // Fetch colleges, departments, and buildings
   useEffect(() => {
     const fetchData = async () => {
       setLoadingData(true);
       try {
-        console.log("Fetching data from:", API_BASE);
+        console.log("🔍 Fetching data from:", API_BASE);
         
-        // Fetch all data in parallel
+        const endpoints = [
+          `${API_BASE}public/colleges/`,
+          `${API_BASE}public/departments/`,
+          `${API_BASE}buildings/active/`,
+        ];
+        
+        console.log("📡 Testing endpoints:", endpoints);
+
         const [collegeRes, deptRes, buildingRes] = await Promise.all([
-          fetch(`${API_BASE}public/colleges/`),
-          fetch(`${API_BASE}public/departments/`),
-          fetch(`${API_BASE}buildings/active/`),
+          fetch(endpoints[0]),
+          fetch(endpoints[1]),
+          fetch(endpoints[2]),
         ]);
 
-        console.log("College response status:", collegeRes.status);
-        console.log("Department response status:", deptRes.status);
-        console.log("Building response status:", buildingRes.status);
+        console.log("✅ College response status:", collegeRes.status);
+        console.log("✅ Department response status:", deptRes.status);
+        console.log("✅ Building response status:", buildingRes.status);
 
         let collegeData = [];
         let deptData = [];
         let buildingData = [];
 
-        // Parse responses
         if (collegeRes.ok) {
           collegeData = await collegeRes.json();
-          console.log("Colleges loaded:", collegeData.length);
+          console.log("📚 Colleges loaded:", collegeData.length);
         } else {
-          console.warn("Failed to load colleges:", collegeRes.status);
+          console.warn("⚠️ Failed to load colleges:", await collegeRes.text());
         }
 
         if (deptRes.ok) {
           deptData = await deptRes.json();
-          console.log("Departments loaded:", deptData.length);
+          console.log("📚 Departments loaded:", deptData.length);
         } else {
-          console.warn("Failed to load departments:", deptRes.status);
+          console.warn("⚠️ Failed to load departments:", await deptRes.text());
         }
 
         if (buildingRes.ok) {
           const buildingJson = await buildingRes.json();
           buildingData = buildingJson.buildings || buildingJson || [];
-          console.log("Buildings loaded:", buildingData.length);
+          console.log("🏠 Buildings loaded:", buildingData.length);
         } else {
-          console.warn("Failed to load buildings:", buildingRes.status);
+          console.warn("⚠️ Failed to load buildings:", await buildingRes.text());
         }
 
-        // Set data
         setColleges(Array.isArray(collegeData) ? collegeData : []);
         setDepartments(Array.isArray(deptData) ? deptData : []);
         setBuildings(Array.isArray(buildingData) ? buildingData : []);
 
-        // Show warnings if data is missing
         if (collegeData.length === 0) {
           message.warning("No colleges found. Please contact administrator.");
         }
         if (deptData.length === 0) {
           message.warning("No departments found. Please contact administrator.");
         }
-        if (buildingData.length === 0) {
-          message.info("No dormitory buildings available.");
-        }
 
       } catch (error) {
-        console.error("Failed to load data:", error);
-        message.error("Failed to load colleges, departments, or buildings. Please refresh the page.");
+        console.error("❌ Failed to load data:", error);
+        message.error("Failed to load data. Please refresh the page.");
+        setDebugInfo({ error: error.message, stack: error.stack });
       } finally {
         setLoadingData(false);
       }
@@ -144,19 +146,12 @@ export default function RegisterPage() {
     if (selectedCollege) {
       const filtered = departments.filter((d) => d.college === selectedCollege);
       setFilteredDepartments(filtered);
-      console.log("Filtered departments:", filtered.length);
     } else {
       setFilteredDepartments([]);
     }
   }, [selectedCollege, departments]);
 
-  // Retry loading data
-  const retryLoading = () => {
-    setLoadingData(true);
-    window.location.reload();
-  };
-
-  // Step 1: Verify student by ID
+  // ✅ FIXED: Verify student by ID with better error handling
   const onVerifyStudentID = async () => {
     const id_number = form.getFieldValue("id_number");
     
@@ -167,19 +162,32 @@ export default function RegisterPage() {
 
     setVerifying(true);
     try {
-      console.log("Verifying student ID:", id_number);
-      
-      const res = await fetch(`${API_BASE}verify-student-by-id/`, {
+      const url = `${API_BASE}verify-student-by-id/`;
+      console.log("🔍 Verifying student at:", url);
+      console.log("📝 ID Number:", id_number);
+
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id_number }),
       });
 
-      const data = await res.json();
-      console.log("Verification response:", data);
+      console.log("📡 Response status:", res.status);
+      
+      // Get response text first for debugging
+      const responseText = await res.text();
+      console.log("📄 Raw response:", responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error("❌ Failed to parse JSON:", e);
+        throw new Error(`Invalid server response: ${responseText.substring(0, 100)}...`);
+      }
 
       if (res.ok) {
-        // Save verified student info
+        console.log("✅ Verification successful:", data);
         setVerifiedStudent({
           id: data.student.id,
           first_name: data.student.first_name,
@@ -193,7 +201,6 @@ export default function RegisterPage() {
           department_id: data.student.department_id || null,
         });
         
-        // Pre-fill form with student data
         form.setFieldsValue({
           first_name: data.student.first_name,
           last_name: data.student.last_name,
@@ -201,7 +208,6 @@ export default function RegisterPage() {
           email: data.student.email || "",
         });
         
-        // Set college if available
         if (data.student.college_id) {
           setSelectedCollege(data.student.college_id);
           form.setFieldsValue({ college: data.student.college_id });
@@ -214,31 +220,51 @@ export default function RegisterPage() {
         message.success("✓ Student verified successfully!");
         setCurrentStep(1);
       } else {
+        console.error("❌ Verification failed:", data);
         message.error(data.error || "Student verification failed");
         
-        // Show detailed error modal
-        if (data.details) {
-          Modal.error({
-            title: "Verification Failed",
-            content: (
-              <div>
-                <p><strong>Reason:</strong> {data.error}</p>
-                <p><strong>Details:</strong> {data.details}</p>
-                {data.suggestions && <p><strong>Suggestions:</strong> {data.suggestions}</p>}
-              </div>
-            ),
-          });
-        }
+        Modal.error({
+          title: "Verification Failed",
+          content: (
+            <div>
+              <p><strong>Status:</strong> {res.status}</p>
+              <p><strong>Message:</strong> {data.error || data.message || "Unknown error"}</p>
+              {data.details && <p><strong>Details:</strong> {data.details}</p>}
+              {data.suggestions && <p><strong>Suggestions:</strong> {data.suggestions}</p>}
+              <Divider />
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                If this problem persists, please contact the administrator.
+              </Text>
+            </div>
+          ),
+          width: 500,
+        });
       }
     } catch (error) {
-      console.error("Verification error:", error);
-      message.error("Network error. Please try again.");
+      console.error("❌ Verification error:", error);
+      message.error("Network error. Please check your connection.");
+      
+      Modal.error({
+        title: "Connection Error",
+        content: (
+          <div>
+            <p>Failed to connect to the server.</p>
+            <p><strong>Error:</strong> {error.message}</p>
+            <p><strong>API URL:</strong> {API_BASE}</p>
+            <Divider />
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              Make sure the backend server is running and accessible.
+            </Text>
+          </div>
+        ),
+        width: 500,
+      });
     } finally {
       setVerifying(false);
     }
   };
 
-  // Step 2: Create account
+  // ✅ FIXED: Create account with better error handling
   const onCreateAccount = async (values) => {
     setLoading(true);
     try {
@@ -250,18 +276,31 @@ export default function RegisterPage() {
         id_number: verifiedStudent.id_number,
       };
 
-      console.log("Submitting registration:", payload);
+      const url = `${API_BASE}register/`;
+      console.log("📝 Registering at:", url);
+      console.log("📦 Payload:", payload);
 
-      const res = await fetch(`${API_BASE}register/`, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-      console.log("Registration response:", data);
+      console.log("📡 Registration response status:", res.status);
+      
+      const responseText = await res.text();
+      console.log("📄 Raw registration response:", responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error("❌ Failed to parse JSON:", e);
+        throw new Error(`Invalid server response: ${responseText.substring(0, 100)}...`);
+      }
 
       if (res.ok) {
+        console.log("✅ Registration successful:", data);
         message.success("🎉 Account created successfully!");
         setCurrentStep(2);
         
@@ -270,27 +309,79 @@ export default function RegisterPage() {
           student_name: verifiedStudent.full_name,
         }));
       } else {
+        console.error("❌ Registration failed:", data);
+        
+        // Check if user already exists
+        if (data.message?.toLowerCase().includes("already exists") || 
+            data.error?.toLowerCase().includes("already exists")) {
+          Modal.info({
+            title: "Already Registered",
+            content: (
+              <div>
+                <p>This student ID is already registered.</p>
+                <p><strong>Name:</strong> {verifiedStudent.full_name}</p>
+                <p><strong>Student ID:</strong> {verifiedStudent.id_number}</p>
+                <p>Please use the login page to access your account.</p>
+              </div>
+            ),
+            onOk: () => navigate("/login"),
+          });
+          return;
+        }
+        
         // Show validation errors
         if (data.errors) {
           const errorMessages = Object.entries(data.errors)
             .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
             .join('\n');
+          
           Modal.error({
             title: "Registration Failed",
             content: (
               <div>
                 <p>Please fix the following errors:</p>
-                <pre style={{ whiteSpace: 'pre-wrap' }}>{errorMessages}</pre>
+                <pre style={{ whiteSpace: 'pre-wrap', background: '#f5f5f5', padding: '10px', borderRadius: '4px' }}>
+                  {errorMessages}
+                </pre>
               </div>
             ),
+            width: 500,
           });
         } else {
-          message.error(data.message || data.error || "Registration failed");
+          Modal.error({
+            title: "Registration Failed",
+            content: (
+              <div>
+                <p><strong>Status:</strong> {res.status}</p>
+                <p><strong>Message:</strong> {data.message || data.error || "Unknown error"}</p>
+                <Divider />
+                <Text type="secondary" style={{ fontSize: '12px' }}>
+                  Please check your information and try again.
+                </Text>
+              </div>
+            ),
+            width: 500,
+          });
         }
       }
     } catch (error) {
-      console.error("Registration error:", error);
-      message.error("Server error. Please try again.");
+      console.error("❌ Registration error:", error);
+      
+      Modal.error({
+        title: "Connection Error",
+        content: (
+          <div>
+            <p>Failed to connect to the server.</p>
+            <p><strong>Error:</strong> {error.message}</p>
+            <p><strong>API URL:</strong> {API_BASE}</p>
+            <Divider />
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              Make sure the backend server is running and accessible.
+            </Text>
+          </div>
+        ),
+        width: 500,
+      });
     } finally {
       setLoading(false);
     }
@@ -335,11 +426,21 @@ export default function RegisterPage() {
             
             <Alert
               message="Verification Required"
-              description="Please enter your Student ID exactly as it appears in the university records. Your name will be automatically retrieved."
+              description="Please enter your Student ID exactly as it appears in the university records."
               type="info"
               showIcon
               className="verification-alert"
             />
+
+            {!API_BASE.includes("localhost") && (
+              <Alert
+                message="Production Mode"
+                description={`API URL: ${API_BASE}`}
+                type="warning"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            )}
 
             <div className="verification-form-container">
               <Form form={form} layout="vertical">
@@ -377,16 +478,36 @@ export default function RegisterPage() {
 
             <div className="verification-help">
               <Alert
-                message="Important Information"
+                message="Need Help?"
                 description={
-                  <ul>
-                    <li>Enter your Student ID exactly as provided by the university</li>
-                    <li>Example formats: AAA1234, STU001, 2024CS001</li>
-                    <li>If verification fails, contact your department administrator</li>
-                    <li>Already registered? <Button type="link" onClick={() => navigate("/login")}>Login here</Button></li>
-                  </ul>
+                  <div>
+                    <ul>
+                      <li>Enter your Student ID exactly as provided</li>
+                      <li>Example formats: AAA1234, STU001, 2024CS001</li>
+                      <li>Already registered? <Button type="link" onClick={() => navigate("/login")}>Login here</Button></li>
+                    </ul>
+                    <Button 
+                      type="text" 
+                      icon={<BugOutlined />}
+                      onClick={() => setShowDebug(!showDebug)}
+                      style={{ marginTop: 8 }}
+                    >
+                      {showDebug ? "Hide Debug Info" : "Show Debug Info"}
+                    </Button>
+                    {showDebug && (
+                      <div style={{ marginTop: 8, padding: 8, background: '#f5f5f5', borderRadius: 4, fontSize: '12px' }}>
+                        <p><strong>API URL:</strong> {API_BASE}</p>
+                        <p><strong>Environment:</strong> {process.env.NODE_ENV}</p>
+                        {debugInfo && (
+                          <pre style={{ whiteSpace: 'pre-wrap' }}>
+                            {JSON.stringify(debugInfo, null, 2)}
+                          </pre>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 }
-                type="warning"
+                type="info"
                 showIcon
               />
             </div>
@@ -432,7 +553,7 @@ export default function RegisterPage() {
 
             <Alert
               message="Account Setup"
-              description="Complete your registration by creating a personal email and password, and selecting your college, department, and dormitory building."
+              description="Complete your registration by creating a personal email and password."
               type="info"
               showIcon
               className="account-alert"
@@ -534,11 +655,9 @@ export default function RegisterPage() {
               >
                 <Select 
                   placeholder={buildings.length === 0 ? "No buildings available" : "Select your dormitory building"}
-                  loading={buildingsLoading}
                   size="large"
                   allowClear
                   disabled={buildings.length === 0}
-                  notFoundContent={buildings.length === 0 ? "No buildings available" : null}
                 >
                   {buildings.map(building => (
                     <Option key={building.id} value={building.id}>
@@ -693,7 +812,7 @@ export default function RegisterPage() {
           </div>
           <Button 
             icon={<ReloadOutlined />} 
-            onClick={retryLoading}
+            onClick={() => window.location.reload()}
             type="text"
           >
             Refresh
