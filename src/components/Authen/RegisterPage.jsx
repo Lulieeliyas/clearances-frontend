@@ -1,4 +1,4 @@
-// RegisterPage.jsx - Complete Fixed Version with Debugging
+// RegisterPage.jsx - Fixed Version
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -32,7 +32,6 @@ import {
   SearchOutlined,
   HomeOutlined,
   ReloadOutlined,
-  BugOutlined,
 } from "@ant-design/icons";
 import "./RegisterPage.css";
 
@@ -40,7 +39,6 @@ const { Title, Text } = Typography;
 const { Step } = Steps;
 const { Option } = Select;
 
-// ✅ Use environment-aware API base URL
 const API_BASE = process.env.NODE_ENV === 'production' 
   ? "https://clearances.onrender.com/api/"
   : "http://127.0.0.1:8000/api/";
@@ -56,42 +54,27 @@ export default function RegisterPage() {
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [selectedCollege, setSelectedCollege] = useState(null);
   const [loadingData, setLoadingData] = useState(true);
-  const [debugInfo, setDebugInfo] = useState(null);
-  const [showDebug, setShowDebug] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
-  // Steps for the registration process
   const steps = [
     { title: "Verify ID", content: "Enter your Student ID" },
     { title: "Create Account", content: "Set up your account" },
     { title: "Complete", content: "Registration successful" },
   ];
 
-  // Fetch colleges, departments, and buildings
+  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       setLoadingData(true);
       try {
         console.log("🔍 Fetching data from:", API_BASE);
         
-        const endpoints = [
-          `${API_BASE}public/colleges/`,
-          `${API_BASE}public/departments/`,
-          `${API_BASE}buildings/active/`,
-        ];
-        
-        console.log("📡 Testing endpoints:", endpoints);
-
         const [collegeRes, deptRes, buildingRes] = await Promise.all([
-          fetch(endpoints[0]),
-          fetch(endpoints[1]),
-          fetch(endpoints[2]),
+          fetch(`${API_BASE}public/colleges/`),
+          fetch(`${API_BASE}public/departments/`),
+          fetch(`${API_BASE}buildings/active/`),
         ]);
-
-        console.log("✅ College response status:", collegeRes.status);
-        console.log("✅ Department response status:", deptRes.status);
-        console.log("✅ Building response status:", buildingRes.status);
 
         let collegeData = [];
         let deptData = [];
@@ -100,40 +83,24 @@ export default function RegisterPage() {
         if (collegeRes.ok) {
           collegeData = await collegeRes.json();
           console.log("📚 Colleges loaded:", collegeData.length);
-        } else {
-          console.warn("⚠️ Failed to load colleges:", await collegeRes.text());
         }
-
         if (deptRes.ok) {
           deptData = await deptRes.json();
           console.log("📚 Departments loaded:", deptData.length);
-        } else {
-          console.warn("⚠️ Failed to load departments:", await deptRes.text());
         }
-
         if (buildingRes.ok) {
           const buildingJson = await buildingRes.json();
           buildingData = buildingJson.buildings || buildingJson || [];
           console.log("🏠 Buildings loaded:", buildingData.length);
-        } else {
-          console.warn("⚠️ Failed to load buildings:", await buildingRes.text());
         }
 
         setColleges(Array.isArray(collegeData) ? collegeData : []);
         setDepartments(Array.isArray(deptData) ? deptData : []);
         setBuildings(Array.isArray(buildingData) ? buildingData : []);
 
-        if (collegeData.length === 0) {
-          message.warning("No colleges found. Please contact administrator.");
-        }
-        if (deptData.length === 0) {
-          message.warning("No departments found. Please contact administrator.");
-        }
-
       } catch (error) {
         console.error("❌ Failed to load data:", error);
-        message.error("Failed to load data. Please refresh the page.");
-        setDebugInfo({ error: error.message, stack: error.stack });
+        message.error("Failed to load data. Please refresh.");
       } finally {
         setLoadingData(false);
       }
@@ -151,7 +118,7 @@ export default function RegisterPage() {
     }
   }, [selectedCollege, departments]);
 
-  // ✅ FIXED: Verify student by ID with better error handling
+  // ✅ FIXED: Verify student by ID
   const onVerifyStudentID = async () => {
     const id_number = form.getFieldValue("id_number");
     
@@ -162,32 +129,15 @@ export default function RegisterPage() {
 
     setVerifying(true);
     try {
-      const url = `${API_BASE}verify-student-by-id/`;
-      console.log("🔍 Verifying student at:", url);
-      console.log("📝 ID Number:", id_number);
-
-      const res = await fetch(url, {
+      const res = await fetch(`${API_BASE}verify-student-by-id/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id_number }),
       });
 
-      console.log("📡 Response status:", res.status);
-      
-      // Get response text first for debugging
-      const responseText = await res.text();
-      console.log("📄 Raw response:", responseText);
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error("❌ Failed to parse JSON:", e);
-        throw new Error(`Invalid server response: ${responseText.substring(0, 100)}...`);
-      }
+      const data = await res.json();
 
       if (res.ok) {
-        console.log("✅ Verification successful:", data);
         setVerifiedStudent({
           id: data.student.id,
           first_name: data.student.first_name,
@@ -220,20 +170,93 @@ export default function RegisterPage() {
         message.success("✓ Student verified successfully!");
         setCurrentStep(1);
       } else {
-        console.error("❌ Verification failed:", data);
         message.error(data.error || "Student verification failed");
+      }
+    } catch (error) {
+      console.error("Verification error:", error);
+      message.error("Network error. Please try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // ✅ FIXED: Create account with proper data format
+  const onCreateAccount = async (values) => {
+    setLoading(true);
+    try {
+      // Get the selected building object to get its name
+      const selectedBuilding = buildings.find(b => b.id === values.building);
+      
+      // ✅ Build the payload with proper field names expected by backend
+      const payload = {
+        username: values.email,  // Use email as username
+        email: values.email,
+        password: values.password,
+        password2: values.confirm_password,
+        role: "student",
+        first_name: verifiedStudent.first_name,
+        last_name: verifiedStudent.last_name,
+        student_id: verifiedStudent.id_number,  // Use student_id field
+        id_number: verifiedStudent.id_number,   // Also include id_number
+        college: values.college,  // College ID
+        department: values.department,  // Department ID
+        building: values.building,  // Building ID
+        building_name: selectedBuilding?.name || "",  // Building name (if needed)
+        phone: values.phone || "",
+      };
+
+      console.log("📦 Sending payload:", JSON.stringify(payload, null, 2));
+
+      const res = await fetch(`${API_BASE}register/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      // Get response text first
+      const responseText = await res.text();
+      console.log("📄 Raw response:", responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Failed to parse JSON:", e);
+        throw new Error(`Invalid server response: ${responseText}`);
+      }
+
+      if (res.ok) {
+        message.success("🎉 Account created successfully!");
+        setCurrentStep(2);
+        localStorage.setItem("registration_success", JSON.stringify({
+          email: values.email,
+          student_name: verifiedStudent.full_name,
+        }));
+      } else {
+        // ✅ Show detailed error
+        console.error("❌ Registration failed:", data);
         
+        let errorMessage = "Registration failed";
+        if (data.error) {
+          errorMessage = data.error;
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (data.errors) {
+          const errorList = Object.entries(data.errors)
+            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+            .join('\n');
+          errorMessage = errorList;
+        }
+
         Modal.error({
-          title: "Verification Failed",
+          title: "Registration Failed",
           content: (
             <div>
               <p><strong>Status:</strong> {res.status}</p>
-              <p><strong>Message:</strong> {data.error || data.message || "Unknown error"}</p>
-              {data.details && <p><strong>Details:</strong> {data.details}</p>}
-              {data.suggestions && <p><strong>Suggestions:</strong> {data.suggestions}</p>}
+              <p><strong>Error:</strong> {errorMessage}</p>
               <Divider />
               <Text type="secondary" style={{ fontSize: '12px' }}>
-                If this problem persists, please contact the administrator.
+                Please check your information and try again.
               </Text>
             </div>
           ),
@@ -241,143 +264,13 @@ export default function RegisterPage() {
         });
       }
     } catch (error) {
-      console.error("❌ Verification error:", error);
-      message.error("Network error. Please check your connection.");
-      
-      Modal.error({
-        title: "Connection Error",
-        content: (
-          <div>
-            <p>Failed to connect to the server.</p>
-            <p><strong>Error:</strong> {error.message}</p>
-            <p><strong>API URL:</strong> {API_BASE}</p>
-            <Divider />
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              Make sure the backend server is running and accessible.
-            </Text>
-          </div>
-        ),
-        width: 500,
-      });
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  // ✅ FIXED: Create account with better error handling
-  const onCreateAccount = async (values) => {
-    setLoading(true);
-    try {
-      const payload = {
-        role: "student",
-        ...values,
-        first_name: verifiedStudent.first_name,
-        last_name: verifiedStudent.last_name,
-        id_number: verifiedStudent.id_number,
-      };
-
-      const url = `${API_BASE}register/`;
-      console.log("📝 Registering at:", url);
-      console.log("📦 Payload:", payload);
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      console.log("📡 Registration response status:", res.status);
-      
-      const responseText = await res.text();
-      console.log("📄 Raw registration response:", responseText);
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error("❌ Failed to parse JSON:", e);
-        throw new Error(`Invalid server response: ${responseText.substring(0, 100)}...`);
-      }
-
-      if (res.ok) {
-        console.log("✅ Registration successful:", data);
-        message.success("🎉 Account created successfully!");
-        setCurrentStep(2);
-        
-        localStorage.setItem("registration_success", JSON.stringify({
-          email: values.email,
-          student_name: verifiedStudent.full_name,
-        }));
-      } else {
-        console.error("❌ Registration failed:", data);
-        
-        // Check if user already exists
-        if (data.message?.toLowerCase().includes("already exists") || 
-            data.error?.toLowerCase().includes("already exists")) {
-          Modal.info({
-            title: "Already Registered",
-            content: (
-              <div>
-                <p>This student ID is already registered.</p>
-                <p><strong>Name:</strong> {verifiedStudent.full_name}</p>
-                <p><strong>Student ID:</strong> {verifiedStudent.id_number}</p>
-                <p>Please use the login page to access your account.</p>
-              </div>
-            ),
-            onOk: () => navigate("/login"),
-          });
-          return;
-        }
-        
-        // Show validation errors
-        if (data.errors) {
-          const errorMessages = Object.entries(data.errors)
-            .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
-            .join('\n');
-          
-          Modal.error({
-            title: "Registration Failed",
-            content: (
-              <div>
-                <p>Please fix the following errors:</p>
-                <pre style={{ whiteSpace: 'pre-wrap', background: '#f5f5f5', padding: '10px', borderRadius: '4px' }}>
-                  {errorMessages}
-                </pre>
-              </div>
-            ),
-            width: 500,
-          });
-        } else {
-          Modal.error({
-            title: "Registration Failed",
-            content: (
-              <div>
-                <p><strong>Status:</strong> {res.status}</p>
-                <p><strong>Message:</strong> {data.message || data.error || "Unknown error"}</p>
-                <Divider />
-                <Text type="secondary" style={{ fontSize: '12px' }}>
-                  Please check your information and try again.
-                </Text>
-              </div>
-            ),
-            width: 500,
-          });
-        }
-      }
-    } catch (error) {
       console.error("❌ Registration error:", error);
-      
       Modal.error({
         title: "Connection Error",
         content: (
           <div>
             <p>Failed to connect to the server.</p>
             <p><strong>Error:</strong> {error.message}</p>
-            <p><strong>API URL:</strong> {API_BASE}</p>
-            <Divider />
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              Make sure the backend server is running and accessible.
-            </Text>
           </div>
         ),
         width: 500,
@@ -395,7 +288,6 @@ export default function RegisterPage() {
     form.resetFields();
   };
 
-  // Show loading state
   if (loadingData) {
     return (
       <div className="register-page-container">
@@ -432,16 +324,6 @@ export default function RegisterPage() {
               className="verification-alert"
             />
 
-            {!API_BASE.includes("localhost") && (
-              <Alert
-                message="Production Mode"
-                description={`API URL: ${API_BASE}`}
-                type="warning"
-                showIcon
-                style={{ marginBottom: 16 }}
-              />
-            )}
-
             <div className="verification-form-container">
               <Form form={form} layout="vertical">
                 <Form.Item
@@ -449,12 +331,11 @@ export default function RegisterPage() {
                   name="id_number"
                   rules={[
                     { required: true, message: "Please enter your Student ID" },
-                    { pattern: /^[A-Z0-9]{4,20}$/, message: "Enter a valid Student ID (e.g., AAA1234)" }
                   ]}
                 >
                   <Input 
                     prefix={<IdcardOutlined />} 
-                    placeholder="Enter your Student ID (e.g., AAA1234)"
+                    placeholder="Enter your Student ID"
                     size="large"
                     disabled={verifying}
                   />
@@ -467,7 +348,6 @@ export default function RegisterPage() {
                   loading={verifying}
                   onClick={onVerifyStudentID}
                   icon={<SearchOutlined />}
-                  className="verify-button"
                 >
                   {verifying ? "Verifying..." : "Verify Student ID"}
                 </Button>
@@ -483,28 +363,8 @@ export default function RegisterPage() {
                   <div>
                     <ul>
                       <li>Enter your Student ID exactly as provided</li>
-                      <li>Example formats: AAA1234, STU001, 2024CS001</li>
                       <li>Already registered? <Button type="link" onClick={() => navigate("/login")}>Login here</Button></li>
                     </ul>
-                    <Button 
-                      type="text" 
-                      icon={<BugOutlined />}
-                      onClick={() => setShowDebug(!showDebug)}
-                      style={{ marginTop: 8 }}
-                    >
-                      {showDebug ? "Hide Debug Info" : "Show Debug Info"}
-                    </Button>
-                    {showDebug && (
-                      <div style={{ marginTop: 8, padding: 8, background: '#f5f5f5', borderRadius: 4, fontSize: '12px' }}>
-                        <p><strong>API URL:</strong> {API_BASE}</p>
-                        <p><strong>Environment:</strong> {process.env.NODE_ENV}</p>
-                        {debugInfo && (
-                          <pre style={{ whiteSpace: 'pre-wrap' }}>
-                            {JSON.stringify(debugInfo, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    )}
                   </div>
                 }
                 type="info"
@@ -527,7 +387,7 @@ export default function RegisterPage() {
                   <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
                   <Text strong>Verified Student Information</Text>
                 </div>
-                <Descriptions column={2} bordered size="small" className="student-info-details">
+                <Descriptions column={2} bordered size="small">
                   <Descriptions.Item label="Full Name" span={2}>
                     <Tag color="green" icon={<UserOutlined />}>
                       {verifiedStudent.full_name}
@@ -651,7 +511,6 @@ export default function RegisterPage() {
                 label="Dormitory Building"
                 name="building"
                 rules={[{ required: true, message: 'Please select your dormitory building' }]}
-                tooltip="Select the building where you currently reside"
               >
                 <Select 
                   placeholder={buildings.length === 0 ? "No buildings available" : "Select your dormitory building"}
@@ -668,15 +527,21 @@ export default function RegisterPage() {
               </Form.Item>
 
               <Form.Item
+                label="Phone Number"
+                name="phone"
+              >
+                <Input 
+                  placeholder="Enter your phone number"
+                  size="large"
+                />
+              </Form.Item>
+
+              <Form.Item
                 label="Password"
                 name="password"
                 rules={[
                   { required: true, message: "Please enter a password" },
                   { min: 8, message: "Password must be at least 8 characters" },
-                  { 
-                    pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/, 
-                    message: "Password must include uppercase, lowercase, and numbers" 
-                  }
                 ]}
                 hasFeedback
               >
