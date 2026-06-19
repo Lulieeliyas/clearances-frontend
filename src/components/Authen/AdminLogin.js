@@ -1,3 +1,4 @@
+// AdminLogin.jsx - Fixed Version
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -19,9 +20,9 @@ import {
   SafetyOutlined,
   LoginOutlined,
   HomeOutlined,
-  SecurityScanOutlined // Changed from ShieldOutlined to SecurityScanOutlined
+  SecurityScanOutlined
 } from "@ant-design/icons";
-import { apiFetch, setSession } from "../../utils/api";
+import { API_BASE, setSession } from "../../utils/api";
 
 const { Title, Text } = Typography;
 
@@ -50,34 +51,61 @@ export default function AdminLogin() {
     setError("");
 
     try {
+      // ✅ FIXED: Remove role from login payload
+      // The backend only expects username and password for login
       const payload = {
         username: values.username,
         password: values.password,
-        role: "admin"
       };
 
-      const res = await apiFetch("login/", {
+      console.log("🔍 Admin login attempt:", { username: values.username });
+
+      // ✅ Use direct fetch instead of apiFetch to avoid potential issues
+      const response = await fetch(`${API_BASE}login/`, {
         method: "POST",
-        body: payload,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
 
-      // Verify it's actually an admin
-      if (res.user.role !== "admin") {
+      // Get the response data
+      const responseText = await response.text();
+      console.log("📄 Raw login response:", responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Failed to parse JSON:", e);
+        throw new Error("Invalid server response");
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || "Login failed");
+      }
+
+      // ✅ Check if user has admin role
+      if (!data.user || data.user.role !== "admin") {
+        console.error("❌ Not an admin user:", data.user);
         throw new Error("Access denied. Admin credentials required.");
       }
 
-      // Save session
-      setSession({ ...res.user, token: res.token });
+      // ✅ Save session
+      setSession({ 
+        token: data.token, 
+        ...data.user 
+      });
       
-      message.success("Admin login successful!");
+      message.success("✅ Admin login successful!");
       
-      // Redirect to admin dashboard
+      // ✅ Redirect to admin dashboard
       navigate("/admin");
 
     } catch (err) {
-      console.error("Admin login error:", err);
+      console.error("❌ Admin login error:", err);
       setError(err.message || "Invalid admin credentials");
-      message.error("Admin login failed");
+      message.error(err.message || "Admin login failed");
     } finally {
       setLoading(false);
     }
@@ -122,7 +150,7 @@ export default function AdminLogin() {
                   </Text>
                 </div>
                 <Divider style={{ margin: "16px 0" }}>
-                  <SecurityScanOutlined style={{ color: "#1890ff" }} /> {/* Changed here */}
+                  <SecurityScanOutlined style={{ color: "#1890ff" }} />
                 </Divider>
                 <Text strong style={{ fontSize: 16, color: "#666" }}>
                   Restricted Administrator Access
