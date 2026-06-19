@@ -1,4 +1,3 @@
-// RegisterPage.jsx - Fixed Version
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -31,7 +30,6 @@ import {
   ArrowLeftOutlined,
   SearchOutlined,
   HomeOutlined,
-  ReloadOutlined,
 } from "@ant-design/icons";
 import "./RegisterPage.css";
 
@@ -39,6 +37,7 @@ const { Title, Text } = Typography;
 const { Step } = Steps;
 const { Option } = Select;
 
+// API base URL
 const API_BASE = process.env.NODE_ENV === 'production' 
   ? "https://clearances.onrender.com/api/"
   : "http://127.0.0.1:8000/api/";
@@ -51,58 +50,47 @@ export default function RegisterPage() {
   const [colleges, setColleges] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [buildings, setBuildings] = useState([]);
+  const [buildingsLoading, setBuildingsLoading] = useState(false);
   const [filteredDepartments, setFilteredDepartments] = useState([]);
   const [selectedCollege, setSelectedCollege] = useState(null);
-  const [loadingData, setLoadingData] = useState(true);
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
+  // Steps for the registration process
   const steps = [
-    { title: "Verify ID", content: "Enter your Student ID" },
-    { title: "Create Account", content: "Set up your account" },
-    { title: "Complete", content: "Registration successful" },
+    {
+      title: "Verify ID",
+      content: "Enter your Student ID",
+    },
+    {
+      title: "Create Account",
+      content: "Set up your account",
+    },
+    {
+      title: "Complete",
+      content: "Registration successful",
+    },
   ];
 
-  // Fetch data
+  // Fetch colleges, departments, and buildings
   useEffect(() => {
     const fetchData = async () => {
-      setLoadingData(true);
       try {
-        console.log("🔍 Fetching data from:", API_BASE);
-        
         const [collegeRes, deptRes, buildingRes] = await Promise.all([
           fetch(`${API_BASE}public/colleges/`),
           fetch(`${API_BASE}public/departments/`),
           fetch(`${API_BASE}buildings/active/`),
         ]);
-
-        let collegeData = [];
-        let deptData = [];
-        let buildingData = [];
-
-        if (collegeRes.ok) {
-          collegeData = await collegeRes.json();
-          console.log("📚 Colleges loaded:", collegeData.length);
-        }
-        if (deptRes.ok) {
-          deptData = await deptRes.json();
-          console.log("📚 Departments loaded:", deptData.length);
-        }
+        
+        if (collegeRes.ok) setColleges(await collegeRes.json());
+        if (deptRes.ok) setDepartments(await deptRes.json());
         if (buildingRes.ok) {
-          const buildingJson = await buildingRes.json();
-          buildingData = buildingJson.buildings || buildingJson || [];
-          console.log("🏠 Buildings loaded:", buildingData.length);
+          const buildingData = await buildingRes.json();
+          setBuildings(buildingData.buildings || buildingData);
         }
-
-        setColleges(Array.isArray(collegeData) ? collegeData : []);
-        setDepartments(Array.isArray(deptData) ? deptData : []);
-        setBuildings(Array.isArray(buildingData) ? buildingData : []);
-
       } catch (error) {
-        console.error("❌ Failed to load data:", error);
-        message.error("Failed to load data. Please refresh.");
-      } finally {
-        setLoadingData(false);
+        console.error("Failed to load data:", error);
+        message.error("Failed to load colleges, departments, or buildings");
       }
     };
     fetchData();
@@ -111,14 +99,15 @@ export default function RegisterPage() {
   // Filter departments when college is selected
   useEffect(() => {
     if (selectedCollege) {
-      const filtered = departments.filter((d) => d.college === selectedCollege);
-      setFilteredDepartments(filtered);
+      setFilteredDepartments(
+        departments.filter((d) => d.college === selectedCollege)
+      );
     } else {
       setFilteredDepartments([]);
     }
   }, [selectedCollege, departments]);
 
-  // ✅ FIXED: Verify student by ID
+  // Step 1: Verify student by ID only
   const onVerifyStudentID = async () => {
     const id_number = form.getFieldValue("id_number");
     
@@ -138,6 +127,7 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (res.ok) {
+        // Save verified student info
         setVerifiedStudent({
           id: data.student.id,
           first_name: data.student.first_name,
@@ -151,6 +141,7 @@ export default function RegisterPage() {
           department_id: data.student.department_id || null,
         });
         
+        // Pre-fill form with student data
         form.setFieldsValue({
           first_name: data.student.first_name,
           last_name: data.student.last_name,
@@ -158,6 +149,7 @@ export default function RegisterPage() {
           email: data.student.email || "",
         });
         
+        // Set college if available
         if (data.student.college_id) {
           setSelectedCollege(data.student.college_id);
           form.setFieldsValue({ college: data.student.college_id });
@@ -171,41 +163,43 @@ export default function RegisterPage() {
         setCurrentStep(1);
       } else {
         message.error(data.error || "Student verification failed");
+        
+        // Show detailed error modal
+        if (data.details) {
+          Modal.error({
+            title: "Verification Failed",
+            content: (
+              <div>
+                <p><strong>Reason:</strong> {data.error}</p>
+                <p><strong>Details:</strong> {data.details}</p>
+                {data.suggestions && <p><strong>Suggestions:</strong> {data.suggestions}</p>}
+              </div>
+            ),
+          });
+        }
       }
     } catch (error) {
-      console.error("Verification error:", error);
       message.error("Network error. Please try again.");
+      console.error("Verification error:", error);
     } finally {
       setVerifying(false);
     }
   };
 
-  // ✅ FIXED: Create account with proper data format
+  // Step 2: Create account
   const onCreateAccount = async (values) => {
     setLoading(true);
     try {
-      // Get the selected building object to get its name
-      const selectedBuilding = buildings.find(b => b.id === values.building);
-      
-      // ✅ Build the payload with proper field names expected by backend
       const payload = {
-        username: values.email,  // Use email as username
-        email: values.email,
-        password: values.password,
-        password2: values.confirm_password,
         role: "student",
+        ...values,
+        // Include verified student data
         first_name: verifiedStudent.first_name,
         last_name: verifiedStudent.last_name,
-        student_id: verifiedStudent.id_number,  // Use student_id field
-        id_number: verifiedStudent.id_number,   // Also include id_number
-        college: values.college,  // College ID
-        department: values.department,  // Department ID
-        building: values.building,  // Building ID
-        building_name: selectedBuilding?.name || "",  // Building name (if needed)
-        phone: values.phone || "",
+        id_number: verifiedStudent.id_number,
       };
 
-      console.log("📦 Sending payload:", JSON.stringify(payload, null, 2));
+      console.log("Submitting registration:", payload);
 
       const res = await fetch(`${API_BASE}register/`, {
         method: "POST",
@@ -213,68 +207,44 @@ export default function RegisterPage() {
         body: JSON.stringify(payload),
       });
 
-      // Get response text first
-      const responseText = await res.text();
-      console.log("📄 Raw response:", responseText);
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error("Failed to parse JSON:", e);
-        throw new Error(`Invalid server response: ${responseText}`);
-      }
+      const data = await res.json();
 
       if (res.ok) {
         message.success("🎉 Account created successfully!");
-        setCurrentStep(2);
+        setCurrentStep(2); // Move to success step
+        
+        // Store login info
         localStorage.setItem("registration_success", JSON.stringify({
           email: values.email,
           student_name: verifiedStudent.full_name,
         }));
-      } else {
-        // ✅ Show detailed error
-        console.error("❌ Registration failed:", data);
-        
-        let errorMessage = "Registration failed";
-        if (data.error) {
-          errorMessage = data.error;
-        } else if (data.message) {
-          errorMessage = data.message;
-        } else if (data.errors) {
-          const errorList = Object.entries(data.errors)
-            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
-            .join('\n');
-          errorMessage = errorList;
-        }
-
-        Modal.error({
-          title: "Registration Failed",
+      } else if (data.error?.includes("already registered")) {
+        Modal.info({
+          title: "Already Registered",
           content: (
             <div>
-              <p><strong>Status:</strong> {res.status}</p>
-              <p><strong>Error:</strong> {errorMessage}</p>
-              <Divider />
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                Please check your information and try again.
-              </Text>
+              <p>This student ID is already registered.</p>
+              <p><strong>Name:</strong> {verifiedStudent.full_name}</p>
+              <p><strong>Student ID:</strong> {verifiedStudent.id_number}</p>
+              <p>Please use the login page to access your account.</p>
             </div>
           ),
-          width: 500,
+          onOk: () => navigate("/login"),
         });
+      } else {
+        // Show validation errors
+        if (data.errors) {
+          const errorMessages = Object.entries(data.errors)
+            .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
+            .join('\n');
+          message.error(errorMessages || data.message || "Registration failed");
+        } else {
+          message.error(data.message || "Registration failed");
+        }
       }
     } catch (error) {
-      console.error("❌ Registration error:", error);
-      Modal.error({
-        title: "Connection Error",
-        content: (
-          <div>
-            <p>Failed to connect to the server.</p>
-            <p><strong>Error:</strong> {error.message}</p>
-          </div>
-        ),
-        width: 500,
-      });
+      message.error("Server error. Please try again.");
+      console.error("Registration error:", error);
     } finally {
       setLoading(false);
     }
@@ -288,28 +258,10 @@ export default function RegisterPage() {
     form.resetFields();
   };
 
-  if (loadingData) {
-    return (
-      <div className="register-page-container">
-        <Card className="register-card loading-card">
-          <Spin 
-            indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
-            tip="Loading registration data..."
-            size="large"
-          >
-            <div style={{ padding: '50px', textAlign: 'center' }}>
-              <p>Loading colleges, departments, and buildings...</p>
-            </div>
-          </Spin>
-        </Card>
-      </div>
-    );
-  }
-
   // Render step content
   const renderStepContent = () => {
     switch (currentStep) {
-      case 0:
+      case 0: // Step 1: ID Verification
         return (
           <div className="verification-step">
             <Title level={3} className="step-title">
@@ -318,7 +270,7 @@ export default function RegisterPage() {
             
             <Alert
               message="Verification Required"
-              description="Please enter your Student ID exactly as it appears in the university records."
+              description="Please enter your Student ID exactly as it appears in the university records. Your name will be automatically retrieved."
               type="info"
               showIcon
               className="verification-alert"
@@ -331,11 +283,12 @@ export default function RegisterPage() {
                   name="id_number"
                   rules={[
                     { required: true, message: "Please enter your Student ID" },
+                    { pattern: /^[A-Z0-9]{4,20}$/, message: "Enter a valid Student ID (e.g., AAA1234)" }
                   ]}
                 >
                   <Input 
                     prefix={<IdcardOutlined />} 
-                    placeholder="Enter your Student ID"
+                    placeholder="Enter your Student ID (e.g., AAA1234)"
                     size="large"
                     disabled={verifying}
                   />
@@ -348,6 +301,7 @@ export default function RegisterPage() {
                   loading={verifying}
                   onClick={onVerifyStudentID}
                   icon={<SearchOutlined />}
+                  className="verify-button"
                 >
                   {verifying ? "Verifying..." : "Verify Student ID"}
                 </Button>
@@ -358,36 +312,37 @@ export default function RegisterPage() {
 
             <div className="verification-help">
               <Alert
-                message="Need Help?"
+                message="Important Information"
                 description={
-                  <div>
-                    <ul>
-                      <li>Enter your Student ID exactly as provided</li>
-                      <li>Already registered? <Button type="link" onClick={() => navigate("/login")}>Login here</Button></li>
-                    </ul>
-                  </div>
+                  <ul>
+                    <li>Enter your Student ID exactly as provided by the university</li>
+                    <li>Example formats: AAA1234, STU001, 2024CS001</li>
+                    <li>If verification fails, contact your department administrator</li>
+                    <li>Already registered? <Button type="link" onClick={() => navigate("/login")}>Login here</Button></li>
+                  </ul>
                 }
-                type="info"
+                type="warning"
                 showIcon
               />
             </div>
           </div>
         );
 
-      case 1:
+      case 1: // Step 2: Create Account
         return (
           <div className="account-step">
             <Title level={3} className="step-title">
               <UserOutlined /> Create Your Account
             </Title>
             
+            {/* Display verified student info */}
             {verifiedStudent && (
               <Card className="verified-info-card" size="small">
                 <div className="student-info-header">
                   <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
                   <Text strong>Verified Student Information</Text>
                 </div>
-                <Descriptions column={2} bordered size="small">
+                <Descriptions column={2} bordered size="small" className="student-info-details">
                   <Descriptions.Item label="Full Name" span={2}>
                     <Tag color="green" icon={<UserOutlined />}>
                       {verifiedStudent.full_name}
@@ -413,7 +368,7 @@ export default function RegisterPage() {
 
             <Alert
               message="Account Setup"
-              description="Complete your registration by creating a personal email and password."
+              description="Complete your registration by creating a personal email and password, and selecting your college, department, and dormitory building."
               type="info"
               showIcon
               className="account-alert"
@@ -424,6 +379,9 @@ export default function RegisterPage() {
               layout="vertical" 
               onFinish={onCreateAccount}
               className="account-form"
+              initialValues={{
+                building: null,
+              }}
             >
               <Row gutter={16}>
                 <Col span={12}>
@@ -475,10 +433,9 @@ export default function RegisterPage() {
               >
                 <Select 
                   onChange={setSelectedCollege}
-                  placeholder={colleges.length === 0 ? "No colleges available" : "Select your college"}
+                  placeholder="Select your college"
                   size="large"
                   allowClear
-                  disabled={colleges.length === 0}
                 >
                   {colleges.map((c) => (
                     <Option key={c.id} value={c.id}>
@@ -494,29 +451,33 @@ export default function RegisterPage() {
                 rules={[{ required: true, message: "Please select your department" }]}
               >
                 <Select 
-                  placeholder={filteredDepartments.length === 0 ? "No departments available" : "Select your department"}
+                  placeholder="Select your department"
                   size="large"
-                  disabled={!selectedCollege || filteredDepartments.length === 0}
+                  disabled={!selectedCollege}
                   allowClear
                 >
                   {filteredDepartments.map((d) => (
-                    <Option key={d.id} value={d.id}>
+                    <Option key={d.id} value={d.name}>
                       {d.name}
                     </Option>
                   ))}
                 </Select>
               </Form.Item>
 
+              {/* Building Selection Component */}
               <Form.Item
                 label="Dormitory Building"
                 name="building"
                 rules={[{ required: true, message: 'Please select your dormitory building' }]}
+                tooltip="Select the building where you currently reside"
               >
                 <Select 
-                  placeholder={buildings.length === 0 ? "No buildings available" : "Select your dormitory building"}
+                  placeholder="Select your dormitory building"
+                  loading={buildingsLoading}
                   size="large"
                   allowClear
                   disabled={buildings.length === 0}
+                  notFoundContent={buildings.length === 0 ? "No buildings available" : null}
                 >
                   {buildings.map(building => (
                     <Option key={building.id} value={building.id}>
@@ -527,21 +488,15 @@ export default function RegisterPage() {
               </Form.Item>
 
               <Form.Item
-                label="Phone Number"
-                name="phone"
-              >
-                <Input 
-                  placeholder="Enter your phone number"
-                  size="large"
-                />
-              </Form.Item>
-
-              <Form.Item
                 label="Password"
                 name="password"
                 rules={[
                   { required: true, message: "Please enter a password" },
                   { min: 8, message: "Password must be at least 8 characters" },
+                  { 
+                    pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).*$/, 
+                    message: "Password must include uppercase, lowercase, and numbers" 
+                  }
                 ]}
                 hasFeedback
               >
@@ -598,8 +553,9 @@ export default function RegisterPage() {
           </div>
         );
 
-      case 2:
+      case 2: // Step 3: Success
         const selectedBuilding = buildings.find(b => b.id === form.getFieldValue("building"));
+        
         return (
           <div className="success-step">
             <Result
@@ -641,7 +597,7 @@ export default function RegisterPage() {
                   {colleges.find(c => c.id === form.getFieldValue("college"))?.name || "Not selected"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Department">
-                  {departments.find(d => d.id === form.getFieldValue("department"))?.name || "Not selected"}
+                  {form.getFieldValue("department") || "Not selected"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Dormitory Building">
                   {selectedBuilding ? (
@@ -663,29 +619,37 @@ export default function RegisterPage() {
     }
   };
 
+  if (verifying && currentStep === 0) {
+    return (
+      <div className="register-page-container">
+        <Card className="register-card loading-card">
+          <Spin 
+            indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
+            tip="Verifying your student ID..."
+            size="large"
+          >
+            <div style={{ padding: '50px', textAlign: 'center' }}>
+              <p>Please wait while we verify your information...</p>
+            </div>
+          </Spin>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="register-page-container">
       <Card className="register-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <Title level={2} className="register-title">
-              🎓 Student Registration
-            </Title>
-            <Text className="register-subtitle">
-              Verify with Student ID • Create Your Account
-            </Text>
-          </div>
-          <Button 
-            icon={<ReloadOutlined />} 
-            onClick={() => window.location.reload()}
-            type="text"
-          >
-            Refresh
-          </Button>
-        </div>
+        <Title level={2} className="register-title">
+          🎓 Student Registration
+        </Title>
+        <Text className="register-subtitle">
+          Verify with Student ID • Create Your Account
+        </Text>
 
         <Divider />
 
+        {/* Progress Steps */}
         <Steps current={currentStep} className="registration-steps">
           {steps.map((step, index) => (
             <Step 
@@ -699,6 +663,7 @@ export default function RegisterPage() {
 
         <Divider />
 
+        {/* Step Content */}
         <div className="step-content-container">
           {renderStepContent()}
         </div>
