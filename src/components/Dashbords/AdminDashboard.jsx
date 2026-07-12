@@ -592,40 +592,62 @@ const debugApiEndpoints = async () => {
   };
 
   // ==================== STUDENT REGISTRATION FUNCTIONS ====================
-  const uploadCSVFile = async (file) => {
-    setCSVUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('csv_file', file);
-      
-      const token = sessionStorage.getItem("ucs_current") 
-        ? JSON.parse(sessionStorage.getItem("ucs_current")).token 
-        : '';
-      
-      const response = await fetch('${API_BASE}admin/csv-upload/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-        },
-        body: formData,
-      });
+// In AdminDashboard.jsx - Fix the uploadCSVFile function
+const uploadCSVFile = async (file) => {
+  setCSVUploading(true);
+  try {
+    const formData = new FormData();
+    formData.append('csv_file', file);
+    
+    const token = sessionStorage.getItem("ucs_current") 
+      ? JSON.parse(sessionStorage.getItem("ucs_current")).token 
+      : '';
+    
+    // FIX: Use the correct API endpoint
+    const response = await fetch(`${API_BASE}admin/csv-upload/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${token}`,
+        // IMPORTANT: Don't set Content-Type for FormData - browser will set it with boundary
+      },
+      body: formData,
+    });
 
-      const data = await response.json();
+    // Check if response is OK before trying to parse JSON
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('Server response:', text);
       
-      if (response.ok) {
-        message.success(`CSV uploaded successfully: ${data.summary?.successful || 0} students added`);
-        setCSVUploadModal(false);
-        setCSVFile(null);
-        loadAllData();
-      } else {
-        message.error(`Failed to upload CSV: ${data.error || data.message || 'Unknown error'}`);
+      // Check if it's HTML
+      if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+        throw new Error('Server returned HTML instead of JSON. The endpoint may not exist.');
       }
-    } catch (err) {
-      message.error(`CSV upload failed: ${err.message}`);
-    } finally {
-      setCSVUploading(false);
+      
+      try {
+        const errorData = JSON.parse(text);
+        throw new Error(errorData.error || errorData.message || `Server error: ${response.status}`);
+      } catch (e) {
+        throw new Error(`Server error: ${response.status} - ${text.substring(0, 100)}`);
+      }
     }
-  };
+
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    message.success(`CSV uploaded successfully: ${data.summary?.successful || 0} students added`);
+    setCSVUploadModal(false);
+    setCSVFile(null);
+    loadAllData();
+  } catch (err) {
+    console.error('CSV upload error:', err);
+    message.error(`CSV upload failed: ${err.message}`);
+  } finally {
+    setCSVUploading(false);
+  }
+};
 
   const toggleStudentStatus = async (student) => {
     try {
@@ -4871,7 +4893,39 @@ const createStaff = async (values) => {
     </Form.Item>
   </Form>
 </Modal>
-
+// In AdminDashboard.jsx - Add to the upload section
+<Form.Item
+  name="csv_file"
+  label="CSV File"
+  rules={[{ required: true, message: "Please select a CSV file" }]}
+>
+  <Upload
+    accept=".csv"
+    maxCount={1}
+    beforeUpload={(file) => {
+      // Validate file type
+      if (!file.name.endsWith('.csv')) {
+        message.error('Please upload a CSV file');
+        return Upload.LIST_IGNORE;
+      }
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        message.error('File must be less than 10MB');
+        return Upload.LIST_IGNORE;
+      }
+      return true;
+    }}
+    onChange={(info) => {
+      if (info.file.status === 'done') {
+        message.success(`${info.file.name} uploaded successfully`);
+      } else if (info.file.status === 'error') {
+        message.error(`${info.file.name} upload failed.`);
+      }
+    }}
+  >
+    <Button icon={<UploadOutlined />}>Click to Upload CSV</Button>
+  </Upload>
+</Form.Item>
 {/* Building Modal - For Creating/Editing Buildings */}
 <Modal
   title={
