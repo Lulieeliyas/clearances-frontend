@@ -187,7 +187,7 @@ export default function DepartmentHeadPage() {
     try {
       setRefreshing(true);
       const [formsRes, profileRes, chatRes] = await Promise.all([
-        axios.get(`${API_BASE}department-head/forms/`, {
+       axios.get(`${API_BASE}department_forms/`, {
           headers: { Authorization: `Token ${authToken}` }
         }),
         axios.get(`${API_BASE}profile/`, {
@@ -312,7 +312,7 @@ export default function DepartmentHeadPage() {
       setActionLoading(prev => ({ ...prev, [formId]: true }));
       
       const res = await axios.patch(
-        `${API_BASE}department-head/action/${formId}/`,
+       `${API_BASE}department_head_action/${formId}/`,
         { action: "approve" },
         { headers: { Authorization: `Token ${token}` } }
       );
