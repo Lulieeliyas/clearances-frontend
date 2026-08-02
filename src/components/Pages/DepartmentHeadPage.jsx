@@ -1,4 +1,3 @@
-// DepartmentHeadPage.jsx - PROFESSIONAL UI VERSION WITH CLICKABLE STATS CARDS AND BATCH PROCESSING
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
@@ -93,7 +92,16 @@ const { Title, Text } = Typography;
 const { Step } = Steps;
 const { TextArea } = Input;
 const { confirm } = Modal;
-const API_BASE = "http://127.0.0.1:8000/api/";
+
+// ============================================================
+// ✅ FIXED: Dynamic API_BASE with environment variable support
+// ============================================================
+const API_BASE = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? "https://clearances.onrender.com/api/"
+    : "http://localhost:8000/api/");
+
+console.log(`🌐 Department Head API Base: ${API_BASE}`);
 
 export default function DepartmentHeadPage() {
   const navigate = useNavigate();
@@ -113,7 +121,7 @@ export default function DepartmentHeadPage() {
   const [viewModal, setViewModal] = useState(false);
   const [selectedForm, setSelectedForm] = useState(null);
   
-  // ================= MULTI-APPROVAL BATCH PROCESSING =================
+  // Multi-approval batch processing
   const [selectedForms, setSelectedForms] = useState([]);
   const [batchMode, setBatchMode] = useState(false);
   const [batchModal, setBatchModal] = useState(false);
@@ -157,46 +165,79 @@ export default function DepartmentHeadPage() {
   const [studentsList, setStudentsList] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
   const [refreshing, setRefreshing] = useState(false);
-  const [formFilter, setFormFilter] = useState('all'); // 'all', 'pending', 'approved', 'rejected'
+  const [formFilter, setFormFilter] = useState('all');
+  const [apiError, setApiError] = useState(null);
 
-  // ================= AUTH =================
+  // ============================================================
+  // ✅ FIXED: Auth Initialization with Better Error Handling
+  // ============================================================
   useEffect(() => {
-    const stored = sessionStorage.getItem("ucs_current");
-    if (!stored) {
-      message.error("Please login first");
-      navigate("/login");
-      return;
-    }
-    
-    const parsed = JSON.parse(stored);
-    if (parsed.role !== "departmenthead") {
-      message.error("Access denied. Department Head only.");
-      navigate("/login");
-      return;
-    }
-    
-    setUser(parsed);
-    setToken(parsed.token);
-    loadDashboardData(parsed.token);
-    loadProfileData(parsed.token);
-    loadStudentsList(parsed.token);
+    const initializeAuth = async () => {
+      try {
+        const stored = sessionStorage.getItem("ucs_current");
+        console.log("📦 Stored session:", stored ? "Found" : "Not found");
+        
+        if (!stored) {
+          message.error("Please login first");
+          navigate("/login");
+          return;
+        }
+        
+        const parsed = JSON.parse(stored);
+        console.log("👤 User role:", parsed.role);
+        
+        if (parsed.role !== "departmenthead") {
+          message.error("Access denied. Department Head only.");
+          navigate("/login");
+          return;
+        }
+        
+        if (!parsed.token) {
+          message.error("Invalid session. Please login again.");
+          sessionStorage.removeItem("ucs_current");
+          navigate("/login");
+          return;
+        }
+        
+        setUser(parsed);
+        setToken(parsed.token);
+        
+        // Load all dashboard data
+        await loadDashboardData(parsed.token);
+        await loadProfileData(parsed.token);
+        await loadStudentsList(parsed.token);
+        
+      } catch (error) {
+        console.error("❌ Auth initialization error:", error);
+        setApiError(error.message);
+        message.error(`Failed to initialize: ${error.message}`);
+        
+        // Clear invalid session
+        sessionStorage.removeItem("ucs_current");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
   }, [navigate]);
 
-  // ================= LOAD DASHBOARD DATA =================
+  // ============================================================
+  // ✅ FIXED: Load Dashboard Data with Better Error Handling
+  // ============================================================
   const loadDashboardData = async (authToken) => {
     try {
       setRefreshing(true);
-      const [formsRes, profileRes, chatRes] = await Promise.all([
-        axios.get(`${API_BASE}department-head/forms/`, {
-          headers: { Authorization: `Token ${authToken}` }
-        }),
-        axios.get(`${API_BASE}profile/`, {
-          headers: { Authorization: `Token ${authToken}` }
-        }),
-        axios.get(`${API_BASE}department-head/chat-rooms/`, {
-          headers: { Authorization: `Token ${authToken}` }
-        }).catch(err => ({ data: [] }))
-      ]);
+      setApiError(null);
+      console.log("🔄 Loading dashboard data with token:", authToken?.substring(0, 20) + "...");
+      
+      // Get forms from the department head endpoint
+      const formsRes = await axios.get(`${API_BASE}department-head/forms/`, {
+        headers: { Authorization: `Token ${authToken}` }
+      });
+      
+      console.log("📋 Forms response status:", formsRes.status);
+      console.log("📋 Forms data received:", formsRes.data?.length || 0, "forms");
       
       if (formsRes.data && Array.isArray(formsRes.data)) {
         const formsData = formsRes.data;
@@ -236,52 +277,110 @@ export default function DepartmentHeadPage() {
           approvalPercentage: Math.round(approvalPercentage),
           rejectionPercentage: Math.round(rejectionPercentage)
         });
+        
+        console.log("✅ Stats calculated:", { total, pending, approved, rejected });
+      } else {
+        console.warn("⚠️ No forms data received or invalid format");
+        setForms([]);
       }
       
-      // Set profile data
-      if (profileRes.data?.user) {
-        setProfileData(profileRes.data.user);
+      // Load profile data (non-critical)
+      try {
+        const profileRes = await axios.get(`${API_BASE}profile/`, {
+          headers: { Authorization: `Token ${authToken}` }
+        });
+        if (profileRes.data?.user) {
+          setProfileData(profileRes.data.user);
+          console.log("👤 Profile loaded:", profileRes.data.user.first_name || profileRes.data.user.username);
+        }
+      } catch (profileErr) {
+        console.warn("⚠️ Failed to load profile:", profileErr.message);
       }
       
-      // Set chat rooms
-      if (chatRes.data && Array.isArray(chatRes.data)) {
-        setChatRooms(chatRes.data);
+      // Load chat rooms (non-critical)
+      try {
+        const chatRes = await axios.get(`${API_BASE}department-head/chat-rooms/`, {
+          headers: { Authorization: `Token ${authToken}` }
+        });
+        if (chatRes.data && Array.isArray(chatRes.data)) {
+          setChatRooms(chatRes.data);
+          console.log("💬 Chat rooms loaded:", chatRes.data.length);
+        }
+      } catch (chatErr) {
+        console.warn("⚠️ Failed to load chat rooms:", chatErr.message);
+        setChatRooms([]);
       }
       
     } catch (err) {
-      console.error("Load dashboard error:", err);
-      if (err.response?.status === 401) {
-        message.error("Session expired. Please login again.");
-        navigate("/login");
+      console.error("❌ Load dashboard error:", err);
+      
+      // Handle specific error cases
+      if (err.response) {
+        console.error("Response status:", err.response.status);
+        console.error("Response data:", err.response.data);
+        
+        if (err.response.status === 401) {
+          setApiError("Session expired. Please login again.");
+          message.error("Session expired. Please login again.");
+          sessionStorage.removeItem("ucs_current");
+          navigate("/login");
+          return;
+        }
+        
+        if (err.response.status === 404) {
+          setApiError("API endpoint not found. Please check your API URL.");
+          message.error("API endpoint not found. Please check your API URL.");
+          return;
+        }
+        
+        if (err.response.status === 403) {
+          setApiError("Access denied. You don't have permission.");
+          message.error("Access denied. You don't have permission.");
+          return;
+        }
+        
+        setApiError(err.response.data?.error || err.response.data?.message || err.message);
       } else {
-        message.error("Failed to load dashboard data");
+        setApiError(err.message || "Failed to load dashboard data");
       }
+      
+      message.error(`Failed to load dashboard data: ${apiError || err.message}`);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  // ================= LOAD PROFILE DATA =================
+  // ============================================================
+  // ✅ FIXED: Load Profile Data
+  // ============================================================
   const loadProfileData = async (authToken) => {
     try {
       const res = await axios.get(`${API_BASE}profile/`, {
         headers: { Authorization: `Token ${authToken}` }
       });
-      setProfileData(res.data?.user || {});
+      if (res.data?.user) {
+        setProfileData(res.data.user);
+        console.log("👤 Profile loaded:", res.data.user.first_name || res.data.user.username);
+      }
     } catch (err) {
-      console.error("Load profile error:", err);
+      console.error("❌ Load profile error:", err);
+      // Non-critical, don't show error to user
     }
   };
 
-  // ================= LOAD STUDENTS LIST =================
+  // ============================================================
+  // ✅ FIXED: Load Students List
+  // ============================================================
   const loadStudentsList = async (authToken) => {
     try {
       const res = await axios.get(`${API_BASE}department-head/students/`, {
         headers: { Authorization: `Token ${authToken}` }
-      }).catch(err => ({ data: [] }));
+      });
       
       const students = Array.isArray(res.data) ? res.data : [];
+      console.log(`👥 Loaded ${students.length} students`);
+      
       setStudentsList(students.map(student => ({
         id: student.id || Math.random().toString(36).substr(2, 9),
         full_name: student.full_name || student.name || 'Unknown Student',
@@ -295,18 +394,22 @@ export default function DepartmentHeadPage() {
       })));
       
     } catch (err) {
-      console.error("Load students error:", err);
+      console.error("❌ Load students error:", err);
       setStudentsList([]);
     }
   };
 
-  // ================= VIEW FORM DETAILS =================
+  // ============================================================
+  // VIEW FORM DETAILS
+  // ============================================================
   const viewFormDetails = (form) => {
     setSelectedForm(form);
     setViewModal(true);
   };
 
-  // ================= APPROVE FORM =================
+  // ============================================================
+  // ✅ FIXED: APPROVE FORM with Better Error Handling
+  // ============================================================
   const approveForm = async (formId) => {
     try {
       setActionLoading(prev => ({ ...prev, [formId]: true }));
@@ -321,15 +424,15 @@ export default function DepartmentHeadPage() {
         f.id === formId ? { 
           ...f, 
           status: "approved_department",
-          department_note: res.data.note
+          department_note: res.data?.note || "Approved by Department Head"
         } : f
       ));
       
-      message.success("Form approved successfully!");
+      message.success("✅ Form approved successfully!");
       
       notification.success({
         message: 'Approval Successful',
-        description: 'Form has been approved Successfully .',
+        description: 'Form has been approved and forwarded to the next step.',
         duration: 4,
       });
       
@@ -337,14 +440,20 @@ export default function DepartmentHeadPage() {
       setTimeout(() => loadDashboardData(token), 1000);
       
     } catch (err) {
-      console.error("Approve error:", err);
-      message.error(err.response?.data?.error || "Approval failed");
+      console.error("❌ Approve error:", err);
+      if (err.response) {
+        message.error(err.response.data?.error || err.response.data?.message || "Approval failed");
+      } else {
+        message.error(err.message || "Approval failed");
+      }
     } finally {
       setActionLoading(prev => ({ ...prev, [formId]: false }));
     }
   };
 
-  // ================= OPEN REJECT MODAL =================
+  // ============================================================
+  // OPEN REJECT MODAL
+  // ============================================================
   const openRejectModal = (formId, studentId) => {
     setSelectedFormId(formId);
     setSelectedStudentId(studentId);
@@ -352,7 +461,9 @@ export default function DepartmentHeadPage() {
     setRejectModal(true);
   };
 
-  // ================= HANDLE REJECT FORM =================
+  // ============================================================
+  // ✅ FIXED: HANDLE REJECT FORM with Better Error Handling
+  // ============================================================
   const handleRejectForm = async () => {
     if (!rejectNote.trim()) {
       message.error("Please provide a rejection reason");
@@ -373,11 +484,11 @@ export default function DepartmentHeadPage() {
         f.id === selectedFormId ? { 
           ...f, 
           status: "rejected",
-          department_note: res.data.note
+          department_note: res.data?.note || rejectNote.trim()
         } : f
       ));
       
-      message.success("Form rejected successfully!");
+      message.success("✅ Form rejected successfully!");
       setRejectModal(false);
       setRejectNote("");
       setSelectedFormId(null);
@@ -393,12 +504,18 @@ export default function DepartmentHeadPage() {
       setTimeout(() => loadDashboardData(token), 1000);
       
     } catch (err) {
-      console.error("Reject error:", err);
-      message.error(err.response?.data?.error || "Rejection failed");
+      console.error("❌ Reject error:", err);
+      if (err.response) {
+        message.error(err.response.data?.error || err.response.data?.message || "Rejection failed");
+      } else {
+        message.error(err.message || "Rejection failed");
+      }
     }
   };
 
-  // ================= UPDATE PROFILE =================
+  // ============================================================
+  // UPDATE PROFILE
+  // ============================================================
   const updateProfile = async (values) => {
     try {
       setProfileLoading(true);
@@ -420,7 +537,9 @@ export default function DepartmentHeadPage() {
     }
   };
 
-  // ================= UPLOAD PROFILE PICTURE =================
+  // ============================================================
+  // UPLOAD PROFILE PICTURE
+  // ============================================================
   const uploadProfilePicture = async (file) => {
     try {
       setUploadingPhoto(true);
@@ -451,7 +570,9 @@ export default function DepartmentHeadPage() {
     return false;
   };
 
-  // ================= DELETE PROFILE PICTURE =================
+  // ============================================================
+  // DELETE PROFILE PICTURE
+  // ============================================================
   const deleteProfilePicture = async () => {
     try {
       await axios.delete(
@@ -470,7 +591,9 @@ export default function DepartmentHeadPage() {
     }
   };
 
-  // ================= LOAD CHAT MESSAGES =================
+  // ============================================================
+  // LOAD CHAT MESSAGES
+  // ============================================================
   const loadChatMessages = async (roomId) => {
     try {
       setLoading(true);
@@ -496,7 +619,9 @@ export default function DepartmentHeadPage() {
     }
   };
 
-  // ================= SEND MESSAGE =================
+  // ============================================================
+  // SEND MESSAGE
+  // ============================================================
   const sendMessage = async (roomId) => {
     if (!messageInput.trim()) {
       message.warning("Please enter a message");
@@ -519,17 +644,14 @@ export default function DepartmentHeadPage() {
       });
       
       if (res.data && res.data.data) {
-        // Add the new message to the chat
         const newMessage = res.data.data;
         setChatMessages(prev => ({
           ...prev,
           [roomId]: [...(prev[roomId] || []), newMessage]
         }));
         
-        // Clear input
         setMessageInput("");
         
-        // Update chat rooms list with new last message
         setChatRooms(prev => prev.map(room => 
           room.id === roomId ? {
             ...room,
@@ -550,7 +672,9 @@ export default function DepartmentHeadPage() {
     }
   };
 
-  // ================= START NEW CHAT =================
+  // ============================================================
+  // START NEW CHAT
+  // ============================================================
   const startNewChat = async (studentId) => {
     try {
       const student = studentsList.find(s => s.id === studentId);
@@ -573,12 +697,13 @@ export default function DepartmentHeadPage() {
     }
   };
 
-  // ================= EXPORT FORMS =================
+  // ============================================================
+  // EXPORT FORMS
+  // ============================================================
   const exportForms = async () => {
     try {
       setExportLoading(true);
       
-      // Create CSV content
       const headers = ['ID', 'Student Name', 'ID Number', 'Program Level', 'Department', 'Status', 'Submitted Date', 'Reason'];
       const rows = forms.map(form => [
         form.id,
@@ -596,7 +721,6 @@ export default function DepartmentHeadPage() {
         ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
       ].join('\n');
       
-      // Create download link
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -616,7 +740,9 @@ export default function DepartmentHeadPage() {
     }
   };
 
-  // ================= SORT FORMS =================
+  // ============================================================
+  // SORT FORMS
+  // ============================================================
   const handleSort = (key) => {
     setSortConfig(prev => ({
       key,
@@ -624,23 +750,25 @@ export default function DepartmentHeadPage() {
     }));
   };
 
-  // ================= FILTER FORMS BY STATUS =================
+  // ============================================================
+  // FILTER FORMS BY STATUS
+  // ============================================================
   const filterFormsByStatus = (status) => {
     setFormFilter(status);
     setActiveTab("forms");
   };
 
-  // ================= GET FILTERED & SORTED FORMS =================
+  // ============================================================
+  // GET FILTERED & SORTED FORMS
+  // ============================================================
   const getFilteredSortedForms = () => {
     let filtered = forms.filter((f) => {
-      // First apply search filter
       const searchMatch = 
         f.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         f.id_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         f.department_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         f.student_email?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Then apply status filter if not 'all'
       if (formFilter === 'all') {
         return searchMatch;
       } else if (formFilter === 'pending') {
@@ -654,7 +782,6 @@ export default function DepartmentHeadPage() {
       return searchMatch;
     });
 
-    // Apply sorting
     if (sortConfig.key) {
       filtered.sort((a, b) => {
         let aValue = a[sortConfig.key];
@@ -677,20 +804,26 @@ export default function DepartmentHeadPage() {
     return filtered;
   };
 
-  // ================= REFRESH DATA =================
+  // ============================================================
+  // REFRESH DATA
+  // ============================================================
   const handleRefresh = () => {
     loadDashboardData(token);
     message.loading("Refreshing data...", 1);
   };
 
-  // ================= LOGOUT =================
+  // ============================================================
+  // LOGOUT
+  // ============================================================
   const logout = () => {
     sessionStorage.clear();
     message.success("Logged out successfully");
     navigate("/login");
   };
 
-  // ================= MULTI-APPROVAL BATCH FUNCTIONS =================
+  // ============================================================
+  // BATCH PROCESSING FUNCTIONS
+  // ============================================================
   const toggleSelectForm = (formId) => {
     setSelectedForms(prev => {
       if (prev.includes(formId)) {
@@ -743,7 +876,6 @@ export default function DepartmentHeadPage() {
         try {
           setBatchProgress(prev => ({ ...prev, current: i + 1 }));
           
-          // Check if form is pending
           if (form.status !== "pending_department") {
             results.failed.push({
               id: formId,
@@ -770,7 +902,6 @@ export default function DepartmentHeadPage() {
             message: res.data.message || `${batchAction} successful`
           });
           
-          // Update local state
           setForms(prev => prev.map(f => {
             if (f.id === formId) {
               const newStatus = batchAction === 'approve' ? 'approved_department' : 'rejected';
@@ -791,14 +922,12 @@ export default function DepartmentHeadPage() {
           });
         }
         
-        // Small delay to prevent overwhelming the server
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
       setBatchResults(results);
       setBatchProgress({ current: selectedForms.length, total: selectedForms.length, status: 'completed' });
       
-      // Show summary notification
       notification.info({
         message: 'Batch Processing Complete',
         description: (
@@ -818,7 +947,6 @@ export default function DepartmentHeadPage() {
         message.warning(`${results.failed.length} forms failed to process`);
       }
       
-      // Clear selection and refresh data
       clearSelection();
       setTimeout(() => {
         loadDashboardData(token);
@@ -837,38 +965,9 @@ export default function DepartmentHeadPage() {
     setBatchResults({ success: [], failed: [] });
   };
 
-  const getFilteredByCriteria = () => {
-    let filtered = forms.filter(f => f.status === "pending_department");
-    
-    if (filterCriteria.department) {
-      filtered = filtered.filter(f => f.department_name === filterCriteria.department);
-    }
-    
-    if (filterCriteria.year) {
-      filtered = filtered.filter(f => f.year === filterCriteria.year);
-    }
-    
-    if (filterCriteria.dateRange && filterCriteria.dateRange[0] && filterCriteria.dateRange[1]) {
-      filtered = filtered.filter(f => {
-        const date = dayjs(f.created_at);
-        return date.isAfter(filterCriteria.dateRange[0]) && date.isBefore(filterCriteria.dateRange[1]);
-      });
-    }
-    
-    return filtered;
-  };
-
-  const getUniqueDepartments = () => {
-    const depts = new Set(forms.map(f => f.department_name).filter(Boolean));
-    return Array.from(depts);
-  };
-
-  const getUniqueYears = () => {
-    const years = new Set(forms.map(f => f.year).filter(Boolean));
-    return Array.from(years);
-  };
-
-  // ================= RENDER STATUS =================
+  // ============================================================
+  // RENDER FUNCTIONS
+  // ============================================================
   const renderStatus = (status) => {
     switch(status) {
       case "approved_department":
@@ -914,7 +1013,6 @@ export default function DepartmentHeadPage() {
     }
   };
 
-  // ================= RENDER STATS CARDS =================
   const renderStatsCards = () => {
     const cards = [
       {
@@ -1057,7 +1155,6 @@ export default function DepartmentHeadPage() {
     );
   };
 
-  // ================= RENDER PERFORMANCE METRICS =================
   const renderPerformanceMetrics = () => {
     const metrics = [
       {
@@ -1170,7 +1267,6 @@ export default function DepartmentHeadPage() {
     );
   };
 
-  // ================= RENDER REFRESH BUTTONS =================
   const renderRefreshButtons = () => {
     return (
       <Space style={{ width: '100%', justifyContent: 'flex-end', marginBottom: 20 }}>
@@ -1218,7 +1314,6 @@ export default function DepartmentHeadPage() {
     );
   };
 
-  // ================= RENDER CLEARANCE FLOW =================
   const renderClearanceFlow = (form) => {
     let currentStep = 0;
     let steps = [];
@@ -1266,7 +1361,6 @@ export default function DepartmentHeadPage() {
     );
   };
 
-  // ================= RENDER FORM CARD =================
   const renderFormCard = (form) => {
     const isPending = form.status === "pending_department";
     
@@ -1429,23 +1523,19 @@ export default function DepartmentHeadPage() {
     );
   };
 
-  // ================= RENDER DASHBOARD =================
+  // ============================================================
+  // RENDER DASHBOARD
+  // ============================================================
   const renderDashboard = () => {
     const recentForms = forms.slice(0, 5);
     const todayForms = forms.filter(f => dayjs(f.created_at).isSame(dayjs(), 'day'));
 
     return (
       <>
-        {/* Refresh Button */}
         {renderRefreshButtons()}
-
-        {/* Stats Cards */}
         {renderStatsCards()}
-
-        {/* Performance Metrics */}
         {renderPerformanceMetrics()}
 
-        {/* Recent Activity & Today's Forms */}
         <Row gutter={[16, 16]} style={{ marginBottom: 30 }}>
           <Col xs={24} md={12}>
             <Card
@@ -1535,7 +1625,6 @@ export default function DepartmentHeadPage() {
           </Col>
         </Row>
 
-        {/* Recent Forms */}
         <Card
           title={
             <Space>
@@ -1564,12 +1653,13 @@ export default function DepartmentHeadPage() {
     );
   };
 
-  // ================= RENDER FORMS TAB =================
+  // ============================================================
+  // RENDER FORMS TAB
+  // ============================================================
   const renderFormsTab = () => {
     const filteredForms = getFilteredSortedForms();
     const pendingForms = filteredForms.filter(f => f.status === "pending_department");
     
-    // Get the filter status for display
     const getFilterDisplay = () => {
       switch(formFilter) {
         case 'pending': return 'Pending Forms';
@@ -1579,7 +1669,6 @@ export default function DepartmentHeadPage() {
       }
     };
 
-    // Get the count for the current filter
     const getFilteredCount = () => {
       switch(formFilter) {
         case 'pending': return stats.pending;
@@ -1748,7 +1837,6 @@ export default function DepartmentHeadPage() {
           style={{ marginBottom: 20, borderRadius: 10 }}
         />
 
-        {/* Batch Processing Controls */}
         <Card style={{ marginBottom: 20, borderRadius: 10, background: '#f0f5ff' }}>
           <Row align="middle" gutter={16}>
             <Col flex="auto">
@@ -1830,7 +1918,6 @@ export default function DepartmentHeadPage() {
             </Col>
           </Row>
           
-          {/* Active Filters Display */}
           {Object.values(filterCriteria).some(v => v) && (
             <div style={{ marginTop: 15 }}>
               <Space wrap>
@@ -1857,7 +1944,6 @@ export default function DepartmentHeadPage() {
           )}
         </Card>
 
-        {/* Filter Tabs and Search Bar */}
         <Card 
           style={{ 
             marginBottom: 20, 
@@ -1866,7 +1952,6 @@ export default function DepartmentHeadPage() {
             boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
           }}
         >
-          {/* Status Filter Tabs */}
           <div style={{ marginBottom: 16 }}>
             <Space size="middle">
               <Button 
@@ -1958,7 +2043,6 @@ export default function DepartmentHeadPage() {
             </Space>
           </div>
 
-          {/* Search Bar and Actions */}
           <Row gutter={16} align="middle">
             <Col span={16}>
               <Input
@@ -2017,7 +2101,6 @@ export default function DepartmentHeadPage() {
           </div>
         </Card>
 
-        {/* Forms Table */}
         <Card style={{ borderRadius: 10, background: 'white' }}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: 80 }}>
@@ -2054,11 +2137,12 @@ export default function DepartmentHeadPage() {
     );
   };
 
-  // ================= RENDER CHAT TAB =================
+  // ============================================================
+  // RENDER CHAT TAB
+  // ============================================================
   const renderChatTab = () => {
     return (
       <Row gutter={16} style={{ height: 'calc(100vh - 300px)' }}>
-        {/* Chat Rooms List */}
         <Col xs={24} md={8} style={{ height: '100%' }}>
           <Card
             title={
@@ -2141,7 +2225,6 @@ export default function DepartmentHeadPage() {
           </Card>
         </Col>
 
-        {/* Chat Messages Area */}
         <Col xs={24} md={16} style={{ height: '100%' }}>
           <Card
             style={{ 
@@ -2158,7 +2241,6 @@ export default function DepartmentHeadPage() {
           >
             {selectedChat ? (
               <>
-                {/* Chat Header */}
                 <div style={{ 
                   paddingBottom: '16px',
                   borderBottom: '1px solid #f0f0f0',
@@ -2179,7 +2261,6 @@ export default function DepartmentHeadPage() {
                   </Space>
                 </div>
 
-                {/* Messages Container */}
                 <div style={{ 
                   flex: 1,
                   overflow: 'auto',
@@ -2236,7 +2317,6 @@ export default function DepartmentHeadPage() {
                   )}
                 </div>
 
-                {/* Message Input */}
                 <div style={{ 
                   borderTop: '1px solid #f0f0f0',
                   paddingTop: '16px'
@@ -2285,7 +2365,9 @@ export default function DepartmentHeadPage() {
     );
   };
 
-  // ================= RENDER STUDENTS TAB =================
+  // ============================================================
+  // RENDER STUDENTS TAB
+  // ============================================================
   const renderStudentsTab = () => {
     const safeStudentsList = Array.isArray(studentsList) ? studentsList : [];
     
@@ -2460,7 +2542,9 @@ export default function DepartmentHeadPage() {
     );
   };
 
-  // ================= RENDER PROFILE MODAL =================
+  // ============================================================
+  // RENDER PROFILE MODAL
+  // ============================================================
   const renderProfileModal = () => {
     return (
       <Modal
@@ -2492,7 +2576,6 @@ export default function DepartmentHeadPage() {
             }}
             onFinish={updateProfile}
           >
-            {/* Profile Picture Section */}
             <div style={{ textAlign: 'center', marginBottom: '32px' }}>
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <Upload
@@ -2665,7 +2748,9 @@ export default function DepartmentHeadPage() {
     );
   };
 
-  // ================= RENDER VIEW FORM MODAL =================
+  // ============================================================
+  // RENDER VIEW FORM MODAL
+  // ============================================================
   const renderViewFormModal = () => {
     if (!selectedForm) return null;
 
@@ -2815,7 +2900,9 @@ export default function DepartmentHeadPage() {
     );
   };
 
-  // ================= RENDER REJECT MODAL =================
+  // ============================================================
+  // RENDER REJECT MODAL
+  // ============================================================
   const renderRejectModal = () => (
     <Modal
       title={
@@ -2864,7 +2951,9 @@ export default function DepartmentHeadPage() {
     </Modal>
   );
 
-  // ================= RENDER BATCH PROCESSING MODAL =================
+  // ============================================================
+  // RENDER BATCH PROCESSING MODAL
+  // ============================================================
   const renderBatchModal = () => (
     <Modal
       title={
@@ -3005,6 +3094,80 @@ export default function DepartmentHeadPage() {
     </Modal>
   );
 
+  // ============================================================
+  // ✅ RENDER ERROR STATE
+  // ============================================================
+  if (apiError && !loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        flexDirection: 'column',
+        gap: '20px',
+        padding: '40px'
+      }}>
+        <Result
+          status="error"
+          title="Failed to Load Dashboard"
+          subTitle={apiError}
+          extra={[
+            <Button 
+              type="primary" 
+              key="retry" 
+              onClick={() => {
+                setApiError(null);
+                setLoading(true);
+                const stored = sessionStorage.getItem("ucs_current");
+                if (stored) {
+                  const parsed = JSON.parse(stored);
+                  loadDashboardData(parsed.token);
+                } else {
+                  navigate("/login");
+                }
+              }}
+            >
+              Retry
+            </Button>,
+            <Button 
+              key="login" 
+              onClick={() => {
+                sessionStorage.removeItem("ucs_current");
+                navigate("/login");
+              }}
+            >
+              Go to Login
+            </Button>
+          ]}
+        />
+        <Card style={{ maxWidth: '600px', width: '100%', marginTop: '20px' }}>
+          <Text type="secondary" style={{ fontSize: '14px' }}>
+            <strong>Debug Info:</strong>
+          </Text>
+          <div style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
+            <p>• API Base: {API_BASE}</p>
+            <p>• Session exists: {!!sessionStorage.getItem("ucs_current")}</p>
+            <p>• User role: {(() => {
+              const stored = sessionStorage.getItem("ucs_current");
+              if (stored) {
+                try {
+                  return JSON.parse(stored).role || 'None';
+                } catch {
+                  return 'Invalid';
+                }
+              }
+              return 'None';
+            })()}</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // ============================================================
+  // ✅ MAIN RENDER
+  // ============================================================
   return (
     <div style={{ 
       padding: 30, 
