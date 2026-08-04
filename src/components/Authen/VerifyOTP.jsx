@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { API_BASE } from '../../config/api';
+import { API_BASE } from '../../utils/api';
 import './VerifyOTP.css';
 
 const VerifyOTP = () => {
