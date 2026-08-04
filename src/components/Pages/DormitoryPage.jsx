@@ -104,7 +104,15 @@ const { TabPane } = Tabs;
 const { Option } = Select;
 const { TextArea } = Input;
 const { confirm } = Modal;
-const API_BASE = "http://127.0.0.1:8000/api/";
+// ============================================================
+// ✅ FIXED: Dynamic API_BASE with environment variable support
+// ============================================================
+const API_BASE = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? "https://clearances.onrender.com/api/"
+    : "http://localhost:8000/api/");
+
+console.log(`🌐 Dormitory API Base: ${API_BASE}`);
 
 export default function DormitoryPage() {
   const navigate = useNavigate();

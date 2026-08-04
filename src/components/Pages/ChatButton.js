@@ -3,7 +3,15 @@ import { Badge, Button, Dropdown, List, Avatar, message } from 'antd';
 import { MessageOutlined, UserOutlined, BellOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
-const API_BASE = "http://127.0.0.1:8000/api/";
+// ============================================================
+// ✅ FIXED: Dynamic API_BASE with environment variable support
+// ============================================================
+const API_BASE = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' 
+    ? "https://clearances.onrender.com/api/"
+    : "http://localhost:8000/api/");
+
+console.log(`🌐 Chat Button API Base: ${API_BASE}`);
 
 const ChatButton = ({ user, token }) => {
   const [unreadCount, setUnreadCount] = useState(0);
