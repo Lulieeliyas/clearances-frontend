@@ -1,7 +1,10 @@
+// src/components/auth/VerifyOTP.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { API_BASE } from '../../config/api';
 import './VerifyOTP.css';
+
 const VerifyOTP = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -9,16 +12,24 @@ const VerifyOTP = () => {
     
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('');
     const [error, setError] = useState('');
-    const [countdown, setCountdown] = useState(300); // 5 minutes in seconds
-    const [verificationToken, setVerificationToken] = useState('');
+    const [success, setSuccess] = useState('');
+    const [countdown, setCountdown] = useState(300); // 5 minutes
+    const [canResend, setCanResend] = useState(false);
+
+    useEffect(() => {
+        if (!email) {
+            navigate('/forgot-password');
+        }
+    }, [email, navigate]);
 
     // Countdown timer
     useEffect(() => {
         if (countdown > 0) {
             const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
             return () => clearTimeout(timer);
+        } else {
+            setCanResend(true);
         }
     }, [countdown]);
 
@@ -49,6 +60,7 @@ const VerifyOTP = () => {
 
     const handleVerify = async (e) => {
         e.preventDefault();
+        
         const otpString = otp.join('');
         
         if (otpString.length !== 6) {
@@ -58,27 +70,29 @@ const VerifyOTP = () => {
 
         setLoading(true);
         setError('');
-        setMessage('');
+        setSuccess('');
 
         try {
-            const response = await axios.post('http://localhost:8000/api/verify-reset-otp/', {
+            const response = await axios.post(`${API_BASE}verify-reset-otp/`, {
                 email: email,
                 otp: otpString
             });
 
-            setMessage(response.data.message);
-            setVerificationToken(response.data.verification_token);
+            setSuccess('OTP verified successfully!');
             
             // Navigate to reset password page
-            navigate('/reset-password', {
-                state: {
-                    email: email,
-                    verification_token: response.data.verification_token
-                }
-            });
+            setTimeout(() => {
+                navigate('/reset-password', {
+                    state: {
+                        email: email,
+                        verification_token: response.data.verification_token
+                    }
+                });
+            }, 1000);
 
         } catch (err) {
-            setError(err.response?.data?.error || 'Invalid OTP. Please try again.');
+            const errorMsg = err.response?.data?.error || 'Invalid OTP. Please try again.';
+            setError(errorMsg);
             // Reset OTP on error
             setOtp(['', '', '', '', '', '']);
             document.getElementById('otp-0').focus();
@@ -88,16 +102,19 @@ const VerifyOTP = () => {
     };
 
     const handleResendOTP = async () => {
+        if (!canResend) return;
+        
         setLoading(true);
         setError('');
-        setMessage('');
+        setSuccess('');
+        setCanResend(false);
 
         try {
-            const response = await axios.post('http://localhost:8000/api/send-reset-otp/', {
+            const response = await axios.post(`${API_BASE}send-reset-otp/`, {
                 email: email
             });
 
-            setMessage('New OTP sent successfully');
+            setSuccess('New OTP sent successfully!');
             setCountdown(300); // Reset countdown
             setOtp(['', '', '', '', '', '']);
             document.getElementById('otp-0').focus();
@@ -108,11 +125,6 @@ const VerifyOTP = () => {
             setLoading(false);
         }
     };
-
-    if (!email) {
-        navigate('/forgot-password');
-        return null;
-    }
 
     return (
         <div className="auth-container">
@@ -143,7 +155,7 @@ const VerifyOTP = () => {
                                 onKeyDown={(e) => handleKeyDown(index, e)}
                                 className="otp-input"
                                 required
-                                disabled={loading}
+                                disabled={loading || countdown === 0}
                             />
                         ))}
                     </div>
@@ -161,9 +173,9 @@ const VerifyOTP = () => {
                             type="button" 
                             className="auth-button secondary"
                             onClick={handleResendOTP}
-                            disabled={loading || countdown > 240} // Can resend after 1 minute
+                            disabled={loading || !canResend}
                         >
-                            Resend OTP
+                            {canResend ? 'Resend OTP' : `Resend in ${formatTime(countdown)}`}
                         </button>
                     </div>
 
@@ -173,9 +185,9 @@ const VerifyOTP = () => {
                     </div>
                 </form>
 
-                {message && (
+                {success && (
                     <div className="alert alert-success">
-                        {message}
+                        {success}
                     </div>
                 )}
                 

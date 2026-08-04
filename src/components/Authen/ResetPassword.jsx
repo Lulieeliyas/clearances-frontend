@@ -1,6 +1,8 @@
+// src/components/auth/ResetPassword.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { API_BASE } from '../../config/api';
 import './ResetPassword.css';
 
 const ResetPassword = () => {
@@ -15,8 +17,8 @@ const ResetPassword = () => {
         showConfirmPassword: false
     });
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     const [passwordStrength, setPasswordStrength] = useState('');
 
     useEffect(() => {
@@ -28,18 +30,12 @@ const ResetPassword = () => {
     const checkPasswordStrength = (password) => {
         if (!password) return '';
         
-        const hasLower = /[a-z]/.test(password);
-        const hasUpper = /[A-Z]/.test(password);
-        const hasNumber = /\d/.test(password);
-        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-        const length = password.length;
-        
         let strength = 0;
-        if (length >= 8) strength++;
-        if (hasLower) strength++;
-        if (hasUpper) strength++;
-        if (hasNumber) strength++;
-        if (hasSpecial) strength++;
+        if (password.length >= 8) strength++;
+        if (/[a-z]/.test(password)) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/\d/.test(password)) strength++;
+        if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
         
         if (strength <= 2) return 'Weak';
         if (strength <= 4) return 'Medium';
@@ -55,14 +51,16 @@ const ResetPassword = () => {
 
         if (name === 'newPassword') {
             setPasswordStrength(checkPasswordStrength(value));
+            // Clear error when user types
+            setError('');
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setMessage('');
         setError('');
+        setSuccess('');
 
         // Validation
         if (formData.newPassword !== formData.confirmPassword) {
@@ -78,27 +76,28 @@ const ResetPassword = () => {
         }
 
         try {
-            const response = await axios.post('http://localhost:8000/api/reset-password/', {
+            const response = await axios.post(`${API_BASE}reset-password/`, {
                 email: email,
                 verification_token: verification_token,
                 new_password: formData.newPassword,
                 confirm_password: formData.confirmPassword
             });
 
-            setMessage(response.data.message);
+            setSuccess('Password reset successfully! Redirecting to login...');
             
             // Auto-redirect to login after success
             setTimeout(() => {
                 navigate('/login', { 
                     state: { 
-                        message: 'Password reset successful! Please login with your new password.',
-                        email: email
+                        message: 'Password reset successful! Please login with your new password.'
                     }
                 });
             }, 3000);
 
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to reset password. Please try again.');
+            const errorMsg = err.response?.data?.error || 'Failed to reset password. Please try again.';
+            setError(errorMsg);
+            console.error('Reset password error:', err);
         } finally {
             setLoading(false);
         }
@@ -130,11 +129,13 @@ const ResetPassword = () => {
                                 placeholder="Enter new password"
                                 required
                                 className="form-input"
+                                disabled={loading}
                             />
                             <button
                                 type="button"
                                 className="password-toggle"
                                 onClick={() => setFormData(prev => ({...prev, showPassword: !prev.showPassword}))}
+                                disabled={loading}
                             >
                                 {formData.showPassword ? '👁️' : '👁️‍🗨️'}
                             </button>
@@ -167,11 +168,13 @@ const ResetPassword = () => {
                                 placeholder="Confirm new password"
                                 required
                                 className="form-input"
+                                disabled={loading}
                             />
                             <button
                                 type="button"
                                 className="password-toggle"
                                 onClick={() => setFormData(prev => ({...prev, showConfirmPassword: !prev.showConfirmPassword}))}
+                                disabled={loading}
                             >
                                 {formData.showConfirmPassword ? '👁️' : '👁️‍🗨️'}
                             </button>
@@ -191,10 +194,9 @@ const ResetPassword = () => {
                     </div>
                 </form>
 
-                {message && (
+                {success && (
                     <div className="alert alert-success">
-                        <p>{message}</p>
-                        <p>Redirecting to login page...</p>
+                        {success}
                     </div>
                 )}
                 

@@ -1,37 +1,50 @@
+// src/components/auth/ForgotPassword.jsx
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE } from '../../config/api';
+import './ForgotPassword.css';
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Validate email
+        if (!email) {
+            setError('Please enter your email address');
+            return;
+        }
+        
         setLoading(true);
-        setMessage('');
         setError('');
+        setSuccess('');
 
         try {
-            const response = await axios.post('http://localhost:8000/api/send-reset-otp/', {
+            const response = await axios.post(`${API_BASE}send-reset-otp/`, {
                 email: email
             });
 
-            setMessage(response.data.message);
+            setSuccess('OTP sent successfully! Please check your email.');
             
-            // Navigate to OTP verification page
-            navigate('/verify-otp', { 
-                state: { 
-                    email: email,
-                    message: 'OTP sent to your email'
-                }
-            });
+            // Navigate to OTP verification page after short delay
+            setTimeout(() => {
+                navigate('/verify-otp', { 
+                    state: { 
+                        email: email
+                    }
+                });
+            }, 1500);
 
         } catch (err) {
-            setError(err.response?.data?.error || 'Failed to send OTP. Please try again.');
+            const errorMsg = err.response?.data?.error || 'Failed to send OTP. Please try again.';
+            setError(errorMsg);
+            console.error('Send OTP error:', err);
         } finally {
             setLoading(false);
         }
@@ -54,6 +67,7 @@ const ForgotPassword = () => {
                             placeholder="Enter your registered email"
                             required
                             className="form-input"
+                            disabled={loading}
                         />
                     </div>
 
@@ -70,9 +84,9 @@ const ForgotPassword = () => {
                     </div>
                 </form>
 
-                {message && (
+                {success && (
                     <div className="alert alert-success">
-                        {message}
+                        {success}
                     </div>
                 )}
                 
