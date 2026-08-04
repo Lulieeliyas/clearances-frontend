@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE } from '../../config/api';
-import './ForgotPassword.css';
+import './ForgotPasswordPage.css';
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
